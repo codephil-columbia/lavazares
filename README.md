@@ -1,4 +1,4 @@
-# lavazares
+# lavazares [![Build Status](https://travis-ci.org/codephil-columbia/lavazares.svg?branch=master)](https://travis-ci.org/codephil-columbia/lavazares)
 
 ### In order to run the app
 1. npm install 
