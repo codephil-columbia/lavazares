@@ -5,7 +5,7 @@ const bcrypt = require('bcrypt');
 const router = express.Router();
 
 const pool = new Pool({
-  user: process.env.USER,
+  user: process.env.DBUSER,
   host: process.env.HOST,
   database: process.env.DB,
   password: process.env.PW,
@@ -13,7 +13,6 @@ const pool = new Pool({
 })
 
 pool.on('error', (err, client) => {
-  console.log(err);
   process.exit(-1);
 })
 
@@ -47,18 +46,18 @@ router.post('/signup', [_hashPassword], (req, res) => {
   pool.connect()
     .then(client => {
       return client.query('INSERT INTO users(username, password) VALUES($1, $2)', [req.username, req.password])
-        .then(res => {
+        .then(res => { 
           client.release();
+          res.status(200).end();
         })
         .catch(err => {
           client.release();
-          console.log(err.stack);
+          res.status(500).send({err: "Internal server error."});
         })
     })
     .catch(err => {
-      console.log(err);
+      res.status(500).send({err: "Internal server error."});
     })
-  res.end('good');
 })
 
 router.post('/login', (req, res) => {
@@ -68,23 +67,22 @@ router.post('/login', (req, res) => {
         .then(query => {
           const user = query.rows[0];
           _validatePassword(user.password, req.password).then(valid => {
-            if(valid) 
-              res.end('matched');
-            else 
-              res.end('didnt match');
+            if(valid) {
+              res.status(200).send(user);
+            } else {
+              res.status(400).send({err: "Username or password is incorrect."});
+            }
           });
           client.release();
         })
         .catch(err => {
           client.release();
-          console.log(err);
+          res.status(400).send({err: "Username does not exist."});
         })
     })
     .catch(err => {
-      console.log(err);
-      res.end('err');
+      res.status(500).send({err: "Internal server error"});
     })
 })
-
 
 module.exports = router;
