@@ -1,6 +1,7 @@
 const express = require('express');
 const Pool = require('pg').Pool;
 const bcrypt = require('bcrypt');
+const utils = require('./utils');
 
 const router = express.Router();
 
@@ -13,51 +14,32 @@ const pool = new Pool({
 })
 
 pool.on('error', (err, client) => {
+  console.log(err);
   process.exit(-1);
 })
 
-const _recievedMetadata = (req, res, next) => {
-  const { username, password } = req.body;
-  if (!username || !password) {
-    res.end('username or password was null');
-  } else {
-    req.username = username;
-    req.password = password;
-    next();
-  }
+const hashPassword = (req, res, next) => {
+  bcrypt.hash(req.password, 10)
+    .then(hash => {
+      req.password = hash;
+      next();
+    }).catch(err => {
+      console.log(err);
+    })
 }
 
-const _hashPassword = (req, res, next) => {
-  bcrypt.hash(req.password, 10).then(hash => {
-    req.password = hash;
-    next();
-  });
-}
-
-const _validatePassword = (storedHash, incomingPassword) => {
-  return bcrypt.compare(incomingPassword, storedHash).then(res => {
-    return res;
+router.post('/signup', (req, res) => {
+  const {username, password, email} = req.body; 
+  const uid = utils.generateNewUid();
+  pool.query(
+    'INSERT INTO users(username, password, email, uid) VALUES($1, $2, $3, $4)', 
+    [username, password, email, uid]
+  ).then(query => {  
+      res.status(200).json({uid});
+  }).catch(err => {
+      console.log(err);
+      res.status(500).send({err: "Error making new user", err});
   })
-}
-
-router.use(_recievedMetadata);
-
-router.post('/signup', [_hashPassword], (req, res) => {
-  pool.connect()
-    .then(client => {
-      return client.query('INSERT INTO users(username, password) VALUES($1, $2)', [req.username, req.password])
-        .then(res => { 
-          client.release();
-          res.status(200).end();
-        })
-        .catch(err => {
-          client.release();
-          res.status(500).send({err: "Internal server error."});
-        })
-    })
-    .catch(err => {
-      res.status(500).send({err: "Internal server error."});
-    })
 })
 
 router.post('/login', (req, res) => {
@@ -66,9 +48,10 @@ router.post('/login', (req, res) => {
       return client.query('SELECT * FROM users WHERE username = $1 LIMIT 1', [req.username])
         .then(query => {
           const user = query.rows[0];
-          _validatePassword(user.password, req.password).then(valid => {
+          utils.validatePassword(user.password, req.password).then(valid => {
             if(valid) {
-              res.status(200).send(user);
+              console.log(req.session.id);
+              res.status(200).send(user.username);
             } else {
               res.status(400).send({err: "Username or password is incorrect."});
             }
@@ -77,11 +60,11 @@ router.post('/login', (req, res) => {
         })
         .catch(err => {
           client.release();
-          res.status(400).send({err: "Username does not exist."});
+          res.status(400).send({err: "Username does not exist. " + err});
         })
     })
     .catch(err => {
-      res.status(500).send({err: "Internal server error"});
+      res.status(500).send({err: "Internal server error " + err});
     })
 })
 

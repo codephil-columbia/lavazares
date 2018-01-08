@@ -5,6 +5,7 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var cors = require('cors');
+var session = require('express-session')
 require('dotenv').config();
 
 
@@ -13,6 +14,12 @@ var users = require('./routes/users');
 var auth = require('./routes/auth/index.js');
 
 var app = express();
+
+// app.use(session({
+//   secret: 'changethislater',
+//   resave: false,
+//   saveUninitialized: true
+// }))
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
