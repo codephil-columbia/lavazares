@@ -7,7 +7,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/lavazares/models"
 	"github.com/lavazares/routes"
-	_ "github.com/lib/pq"
 )
 
 const (
