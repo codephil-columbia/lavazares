@@ -41,6 +41,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+	return
 }
 
 //Test is used for test
@@ -70,18 +71,21 @@ func HandleSignup(w http.ResponseWriter, r *http.Request) {
 	data, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Printf("error reading user json: %s", err)
+		http.Error(w, "Error Loging in", http.StatusBadRequest)
 		return
 	}
 
 	err = json.Unmarshal(data, &newUser)
 	if err != nil {
 		log.Printf("error making user: %s", err)
+		http.Error(w, "Error loging in", http.StatusBadRequest)
 		return
 	}
 
 	hashedPassword, err := models.HashPassword(newUser.Password)
 	if err != nil {
 		log.Printf("error hashing password: %s", err)
+		http.Error(w, "Password incorrect", http.StatusBadRequest)
 		return
 	}
 
@@ -90,8 +94,27 @@ func HandleSignup(w http.ResponseWriter, r *http.Request) {
 	err = models.InsertUser(&newUser)
 	if err != nil {
 		log.Printf("error inserting user: %s", err)
+		http.Error(w, "Error creating account", http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
+	return
+}
+
+//HandleLogOut logs out a user and deletes their session
+func HandleLogOut(w http.ResponseWriter, r *http.Request) {
+	session, err := store.Get(r, "session")
+	if err != nil {
+		log.Printf("Error getting session: %s", err)
+		http.Error(w, "Error getting session", http.StatusInternalServerError)
+	}
+	val := session.Values["sessionID"]
+	sessionID, ok := val.(string)
+	if !ok {
+		log.Printf("Error parsing session id:%s", err)
+	}
+	models.RedisCache.Del(sessionID)
+	w.WriteHeader(http.StatusOK)
+	return
 }

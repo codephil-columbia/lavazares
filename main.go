@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/lavazares/models"
 	"github.com/lavazares/routes"
+	_ "github.com/lib/pq"
 )
 
 const (
@@ -22,9 +23,14 @@ func main() {
 	err = models.InitRedisCache()
 
 	router := mux.NewRouter()
-	router.HandleFunc("/login", routes.HandleLogin).Methods("POST")
-	router.HandleFunc("/signup", routes.HandleSignup).Methods("POST")
-	router.HandleFunc("/Test", routes.Test).Methods("GET")
+	auth := router.PathPrefix("/auth").Subrouter()
+	home := router.PathPrefix("/home").Subrouter()
+
+	auth.HandleFunc("/login", routes.HandleLogin).Methods("POST")
+	auth.HandleFunc("/signup", routes.HandleSignup).Methods("POST")
+
+	home.HandleFunc("/Test", routes.Test).Methods("GET")
+	home.Use(routes.AuthMiddleware)
 
 	log.Println("listening on port 8081")
 	http.ListenAndServe(":8081", router)
