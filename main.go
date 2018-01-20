@@ -4,9 +4,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/GoPhil/models"
-	"github.com/GoPhil/routes"
 	"github.com/gorilla/mux"
+	"github.com/lavazares/models"
+	"github.com/lavazares/routes"
 	_ "github.com/lib/pq"
 )
 

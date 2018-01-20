@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/GoPhil/models"
+	"github.com/lavazares/models"
 )
 
 //HandleLogin logs in a user
