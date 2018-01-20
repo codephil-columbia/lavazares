@@ -1,11 +1,4 @@
-FROM node:9.3
-LABEL maintainer="cfi2103@columbia.edu"
+FROM golang:1.8
 
-RUN apt-get update
-
-WORKDIR /lavazares
+WORKDIR /go/src/
 COPY ./ ./
-
-RUN ["/bin/bash", "-c", "npm install"]
-
-CMD ["/bin/bash", "-c", "npm start"] 
