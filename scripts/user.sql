@@ -5,3 +5,5 @@ CREATE TABLE users (
     uid TEXT NOT NULL,
     PRIMARY KEY(uid)
 );
+
+INSERT INTO users(username, password, email, uid) VALUES('ibarrac27', 'password', 'ibarrac27@gmail.com', 'fsdfsdfs')
