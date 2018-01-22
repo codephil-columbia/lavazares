@@ -9,6 +9,5 @@ type Response struct {
 	Body       interface{} `json:"body"`
 }
 
-// func (r *Response) NewResponse()
-
 var store = sessions.NewCookieStore([]byte("change-this-at-some-point"))
+var db = db.DB

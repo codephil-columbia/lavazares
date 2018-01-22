@@ -4,11 +4,11 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/lavazares/models"
+	"github.com/lavazares/app/db"
 )
 
-//AuthMiddleware checks to see if session is valid, else throws error
-func AuthMiddleware(next http.Handler) http.Handler {
+//RequiresAuth checks to see if session is valid, else throws error
+func RequiresAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		session, err := store.Get(r, "session")
 		if err != nil {
@@ -24,14 +24,12 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		exists := models.RedisCache.Exists(sessionID)
+		exists := db.SessionManager.Exists(sessionID)
 		if exists.Val() == 0 {
 			log.Printf("Session id does not exist:")
 			http.Error(w, "Session ID invalid", http.StatusForbidden)
 			return
 		}
-
-		log.Printf("user is authenticated")
 		next.ServeHTTP(w, r)
 	})
 }

@@ -1,9 +1,9 @@
-package models
+package db
 
 import (
 	"crypto/rand"
+	"database/sql"
 	"encoding/base64"
-	"fmt"
 	"io"
 	"log"
 	"time"
@@ -33,30 +33,19 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
-// func NewUserSession(userID string) (*UserSession, error) {
-// 	session := UserSession{}
-// 	session.UserID = userID
-// 	session.SessionID = randomKey()
-// 	session.LoginTime = time.Now()
-// 	session.LastSeenTime = time.Now()
-// }
-
 //RetrieveUser retrieves a user given an email
 func RetrieveUser(email string) (*User, error) {
 	user := User{}
-	err := db.QueryRow("select username, password, email, uid from users where email=$1", email).Scan(&user.Username, &user.Password, &user.Email, &user.UID)
-	if err != nil {
-		log.Printf("error scanning user: %s", err)
+	switch err := db.QueryRow("select username, password, email, uid from users where email=$1", email).Scan(&user.Username, &user.Password, &user.Email, &user.UID); err {
+	case sql.ErrNoRows:
 		return nil, err
+	default:
+		return &user, nil
 	}
-	return &user, nil
 }
 
 //InsertUser inserts a new user into the database
 func InsertUser(user *User) error {
-	if db == nil {
-		fmt.Println("database is nil")
-	}
 	_, err := db.Query(
 		"insert into users(username, password, email, uid) values($1, $2, $3, $4)",
 		&user.Username,
@@ -77,7 +66,10 @@ func AutheticateUser(req *LoginRequest) (*User, error) {
 	user, err := RetrieveUser(req.Email)
 	if err != nil {
 		log.Printf("error")
+		return nil, err
 	}
+
+	log.Println(user.Password, req.Password)
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
 	if err != nil {
