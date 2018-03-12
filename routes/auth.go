@@ -1,102 +1,74 @@
 package routes
 
 import (
-	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 
-	"github.com/lavazares/models"
+	"lavazares/models"
 )
 
 //HandleLogin logs in a user
 func HandleLogin(w http.ResponseWriter, r *http.Request) {
 
-	req := models.LoginRequest{}
-	err := json.NewDecoder(r.Body).Decode(&req)
-
-	user, err := models.AutheticateUser(&req)
+	req, err := requestToBytes(r.Body)
 	if err != nil {
-		log.Printf("error logging in: %s", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		fmt.Println(err)
+	}
+
+	u, err := models.AutheticateUser(req)
+	if err != nil {
+		log.Printf("User was not found: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	session, err := store.Get(r, "session")
+	serverSession := models.NewUserSession(u.UID)
+
+	clientSession, err := store.Get(r, "session")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("Could not get client session: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
-	sessionID := models.RandomKey()
-	session.Values["sessionID"] = sessionID
-	session.Values["username"] = user.Username
-	session.Save(r, w)
-
-	fmt.Println(sessionID)
-
-	err = models.RedisCache.Set(sessionID, true, 0).Err()
+	clientSession.Values["sessionID"] = serverSession.SessionID
+	fmt.Println(serverSession.SessionID)
+	err = models.SetToSession(serverSession.SessionID, serverSession.UserID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("Could not commit to server side session: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	return
 }
 
-//Test is used for test
-func Test(w http.ResponseWriter, r *http.Request) {
-	session, err := store.Get(r, "session")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-
-	log.Println("in Test")
-
-	val := session.Values["sessionID"]
-	sessionID, ok := val.(string)
-	if !ok {
-		log.Println("error getting settion id")
-		http.Error(w, "error", http.StatusForbidden)
-	}
-
-	fmt.Println(session)
-	fmt.Println(sessionID)
-	w.WriteHeader(http.StatusOK)
-}
-
 //HandleSignup adds a user to the database
 func HandleSignup(w http.ResponseWriter, r *http.Request) {
-	newUser := models.User{}
-	data, err := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+
+	data, err := requestToBytes(r.Body)
 	if err != nil {
-		log.Printf("error reading user json: %s", err)
-		http.Error(w, "Error Loging in", http.StatusBadRequest)
+		log.Printf("Error reading body: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	err = json.Unmarshal(data, &newUser)
+	id, err := models.NewUser(data)
+
 	if err != nil {
-		log.Printf("error making user: %s", err)
-		http.Error(w, "Error loging in", http.StatusBadRequest)
+		log.Printf("Error creating user: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	hashedPassword, err := models.HashPassword(newUser.Password)
-	if err != nil {
-		log.Printf("error hashing password: %s", err)
-		http.Error(w, "Password incorrect", http.StatusBadRequest)
-		return
-	}
-
-	newUser.Password = hashedPassword
-
-	err = models.InsertUser(&newUser)
-	if err != nil {
-		log.Printf("error inserting user: %s", err)
-		http.Error(w, "Error creating account", http.StatusInternalServerError)
-		return
-	}
+	session, err := store.Get(r, "session")
+	session.Values["sessionID"] = id
+	session.Save(r, w)
 
 	w.WriteHeader(http.StatusOK)
 	return
@@ -104,17 +76,35 @@ func HandleSignup(w http.ResponseWriter, r *http.Request) {
 
 //HandleLogOut logs out a user and deletes their session
 func HandleLogOut(w http.ResponseWriter, r *http.Request) {
-	session, err := store.Get(r, "session")
+	clientSession, err := store.Get(r, "clientSession")
 	if err != nil {
-		log.Printf("Error getting session: %s", err)
-		http.Error(w, "Error getting session", http.StatusInternalServerError)
+		log.Printf("Error getting clientSession: %s", err)
+		http.Error(w, "Error getting clientSession", http.StatusInternalServerError)
 	}
-	val := session.Values["sessionID"]
-	sessionID, ok := val.(string)
+	val := clientSession.Values["clientSessionID"]
+	clientSessionID, ok := val.(string)
 	if !ok {
-		log.Printf("Error parsing session id:%s", err)
+		log.Printf("Error parsing clientSession id:%s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
-	models.RedisCache.Del(sessionID)
+
+	err = models.DeleteFromSession(clientSessionID)
+	if err != nil {
+		log.Printf("Error deleting from session: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 	return
+}
+
+func requestToBytes(body io.ReadCloser) ([]byte, error) {
+	data, err := ioutil.ReadAll(body)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }

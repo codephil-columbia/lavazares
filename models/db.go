@@ -1,46 +1,68 @@
 package models
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 
 	"github.com/go-redis/redis"
+	"github.com/jmoiron/sqlx"
 
-	_ "github.com/lib/pq"
+	"github.com/jinzhu/gorm"
 )
 
-var db *sql.DB
+var db *sqlx.DB
 
 //RedisCache is
-var RedisCache *redis.Client
+var redisCache *redis.Client
 
 //InitDB initialized connected to database
 func InitDB(dataSourceName string) error {
 	var err error
-	db, err = sql.Open("postgres", dataSourceName)
+	db, err = sqlx.Open("postgres", dataSourceName)
 	if err != nil {
-		log.Panic(err)
-		return err
-	}
-
-	if err = db.Ping(); err != nil {
-		log.Panic(err)
 		return err
 	}
 
 	return nil
 }
 
+func SetToSession(key string, val interface{}) error {
+	return redisCache.Set(key, val, 0).Err()
+}
+
+func GetFromSession(key string) string {
+	return redisCache.Get(key).Val()
+}
+
+func IsInSession(key string) int64 {
+	return redisCache.Exists(key).Val()
+}
+
+func DeleteFromSession(key string) error {
+	return redisCache.Del(key).Err()
+}
+
+func initTestDB(datasource string) (*gorm.DB, error) {
+	testDB, err := gorm.Open("postgres", datasource)
+	if err != nil {
+		log.Panic(err)
+		return nil, err
+	}
+
+	testDB.AutoMigrate(&User{})
+
+	return testDB, err
+}
+
 //InitRedisCache initialzes the connection to the redis cache
 func InitRedisCache() error {
-	RedisCache = redis.NewClient(&redis.Options{
+	redisCache = redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
 		Password: "",
 		DB:       0,
 	})
 
-	pong, err := RedisCache.Ping().Result()
+	pong, err := redisCache.Ping().Result()
 	fmt.Println(pong)
 	if err != nil {
 		log.Fatalln("error connecting to redis: %s", err)

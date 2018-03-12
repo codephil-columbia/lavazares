@@ -1,12 +1,18 @@
 package main
 
 import (
+	"fmt"
+	"lavazares/models"
+	"lavazares/routes"
 	"log"
 	"net/http"
+	"os"
 
+	"github.com/rs/cors"
+
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/lavazares/models"
-	"github.com/lavazares/routes"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
 const (
@@ -14,24 +20,27 @@ const (
 )
 
 func main() {
-	err := models.InitDB(connStr)
-	if err != nil {
-		log.Panicf("database could not be opened: %s", err)
+
+	if err := models.InitDB(connStr); err != nil {
+		fmt.Println(err)
 	}
 
-	err = models.InitRedisCache()
+	if err := models.InitRedisCache(); err != nil {
+		fmt.Println(err)
+	}
 
 	router := mux.NewRouter()
 	auth := router.PathPrefix("/auth").Subrouter()
-	home := router.PathPrefix("/home").Subrouter()
+	lesson := router.PathPrefix("/learn").Subrouter()
 
 	auth.HandleFunc("/login", routes.HandleLogin).Methods("POST")
 	auth.HandleFunc("/signup", routes.HandleSignup).Methods("POST")
 
-	home.HandleFunc("/Test", routes.Test).Methods("GET")
-	home.Use(routes.AuthMiddleware)
+	lesson.HandleFunc("/create", routes.HandleLessonCreate).Methods("POST")
+	lesson.HandleFunc("/completed", routes.HandleUserCompletedLesson).Methods("POST")
+	// home.Use(routes.AuthMiddleware)
+	loggingRouter := handlers.LoggingHandler(os.Stdout, router)
 
 	log.Println("listening on port 8081")
-	http.ListenAndServe(":8081", router)
-	log.Println("finished server")
+	log.Println(http.ListenAndServe(":8081", cors.Default().Handler(loggingRouter)))
 }

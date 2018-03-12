@@ -5,4 +5,5 @@ sudo -u postgres psql -d lavazaresDB <<EOL
 ALTER ROLE codephil WITH PASSWORD 'password';
 EOL
 
-sudo -u postgres psql lavazaresDB < /scripts/user.sql
+sudo -u postgres psql lavazaresDB < /scripts/entities.sql
+sudo -u postgres psql lavazaresDB < /scripts/test_data.sql

@@ -1,95 +1,86 @@
 package models
 
 import (
-	"crypto/rand"
-	"encoding/base64"
+	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"time"
 
-	"github.com/gorilla/sessions"
+	"github.com/rs/xid"
 	"golang.org/x/crypto/bcrypt"
 )
 
 //User metadata that is stored in the database
 type User struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	UID      string `json:"uid"`
+	UID       string     `json:"-"`
+	CreatedAt time.Time  `json:"-"`
+	UpdatedAt time.Time  `json:"-"`
+	DeletedAt *time.Time `json:"-"`
+	Username  string     `json:"username"`
+	Email     string     `json:"email"`
+	Password  string     `json:"password"`
 }
 
 type UserSession struct {
-	sessions.Session
-	SessionID    string
-	UserID       string
-	LoginTime    time.Time
-	LastSeenTime time.Time
+	SessionID string
+	UserID    string
+	LoginTime time.Time
 }
 
-type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+func NewUserSession(userID string) *UserSession {
+	return &UserSession{
+		xid.New().String(),
+		userID,
+		time.Now(),
+	}
 }
 
-// func NewUserSession(userID string) (*UserSession, error) {
-// 	session := UserSession{}
-// 	session.UserID = userID
-// 	session.SessionID = randomKey()
-// 	session.LoginTime = time.Now()
-// 	session.LastSeenTime = time.Now()
-// }
-
-//RetrieveUser retrieves a user given an email
-func RetrieveUser(email string) (*User, error) {
-	user := User{}
-	err := db.QueryRow("select username, password, email, uid from users where email=$1", email).Scan(&user.Username, &user.Password, &user.Email, &user.UID)
+func NewUser(fields []byte) (string, error) {
+	u := User{}
+	err := json.Unmarshal(fields, &u)
 	if err != nil {
-		log.Printf("error scanning user: %s", err)
-		return nil, err
+		return "", err
 	}
-	return &user, nil
-}
 
-//InsertUser inserts a new user into the database
-func InsertUser(user *User) error {
-	if db == nil {
-		fmt.Println("database is nil")
-	}
-	_, err := db.Query(
-		"insert into users(username, password, email, uid) values($1, $2, $3, $4)",
-		&user.Username,
-		&user.Password,
-		&user.Email,
-		&user.UID,
-	)
-
+	u.UID = xid.New().String()
+	hashedPassword, err := hashPassword(u.Password)
 	if err != nil {
-		log.Printf("error adding user to database: %s", err)
+		return "", err
 	}
 
-	return nil
+	u.Password = hashedPassword
+	result := db.QueryRowx("INSERT INTO users(UID, Username, Email, Password) VALUES($1, $2, $3, $4)",
+		u.UID, u.Username, u.Email, u.Password).Err()
+	if result != nil {
+		return "", err
+	}
+
+	return u.UID, err
 }
 
 //AutheticateUser authenticates and returns a user
-func AutheticateUser(req *LoginRequest) (*User, error) {
-	user, err := RetrieveUser(req.Email)
-	if err != nil {
-		log.Printf("error")
-	}
+func AutheticateUser(req []byte) (*User, error) {
+	u := User{}
+	userAuthRequest := make(map[string]string)
+	json.Unmarshal(req, &userAuthRequest)
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
+	fmt.Println(userAuthRequest)
+
+	err := db.QueryRowx("SELECT * FROM users WHERE email=$1",
+		userAuthRequest["email"]).StructScan(&u)
 	if err != nil {
-		log.Printf("passwords do not match: %s", err)
 		return nil, err
 	}
 
-	return user, nil
+	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(userAuthRequest["password"])); err != nil {
+		return nil, err
+	}
+
+	return &u, nil
 }
 
 //HashPassword hashes a password and returns hashed password
-func HashPassword(password string) (string, error) {
+func hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	if err != nil {
 		log.Printf("error hashing password %s", err)
@@ -97,12 +88,4 @@ func HashPassword(password string) (string, error) {
 	}
 
 	return string(bytes), nil
-}
-
-func RandomKey() string {
-	b := make([]byte, 32)
-	if _, err := io.ReadFull(rand.Reader, b); err != nil {
-		return ""
-	}
-	return base64.URLEncoding.EncodeToString(b)
 }
