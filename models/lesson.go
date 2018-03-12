@@ -23,6 +23,12 @@ type LessonComplete struct {
 	UID      string `json:"uid" db:"UID"`
 }
 
+type Chapter struct {
+	ChapterID          string `json:"-" db:"ChapterID"`
+	ChapterName        string `json:"chapterName" db:"ChapterName"`
+	ChapterDescription string `json:"ChapterDescription" db:"ChapterDescription"`
+}
+
 func NewLesson(lessonRequest []byte) (*Lesson, error) {
 	lesson := Lesson{}
 	err := json.Unmarshal(lessonRequest, &lesson)
@@ -46,6 +52,26 @@ func NewLesson(lessonRequest []byte) (*Lesson, error) {
 	}
 
 	return &lesson, nil
+}
+
+func NewChapter(chapterReq []byte) (*Chapter, error) {
+	chapter := Chapter{}
+	err := json.Unmarshal(chapterReq, &chapter)
+	if err != nil {
+		return nil, err
+	}
+
+	chapter.ChapterID = xid.New().String()
+
+	_, err = db.NamedQuery(
+		`INSERT INTO Chapters(ChapterID, ChapterName, ChapterDescription)
+		VALUES(:ChapterID, :ChapterName, :ChapterDescription)`,
+		chapter)
+	if err != nil {
+		return nil, err
+	}
+
+	return &chapter, nil
 }
 
 func UserCompletedLesson(lessonComplete LessonComplete) error {

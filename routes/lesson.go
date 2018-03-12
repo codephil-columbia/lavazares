@@ -23,13 +23,30 @@ func HandleLessonCreate(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	fmt.Println(l)
-
-	fmt.Println(string(lessonRequest))
 
 	_, err = models.NewLesson(lessonRequest)
 	if err != nil {
 		log.Printf("Error creating error object: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	return
+}
+
+func HandleChapterCreate(w http.ResponseWriter, r *http.Request) {
+	chapterRequest, err := requestToBytes(r.Body)
+	if err != nil {
+		log.Printf("Could not convert request to bytes: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	chapter, err := models.NewChapter(chapterRequest)
+	fmt.Println(chapter)
+	if err != nil {
+		log.Printf("Error inserting chapter: %v", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}

@@ -31,13 +31,17 @@ func main() {
 
 	router := mux.NewRouter()
 	auth := router.PathPrefix("/auth").Subrouter()
-	lesson := router.PathPrefix("/learn").Subrouter()
+	lesson := router.PathPrefix("/lesson").Subrouter()
+	chapter := router.PathPrefix("/chapter").Subrouter()
 
 	auth.HandleFunc("/login", routes.HandleLogin).Methods("POST")
 	auth.HandleFunc("/signup", routes.HandleSignup).Methods("POST")
 
 	lesson.HandleFunc("/create", routes.HandleLessonCreate).Methods("POST")
 	lesson.HandleFunc("/completed", routes.HandleUserCompletedLesson).Methods("POST")
+
+	chapter.HandleFunc("/create", routes.HandleChapterCreate).Methods("POST")
+
 	// home.Use(routes.AuthMiddleware)
 	loggingRouter := handlers.LoggingHandler(os.Stdout, router)
 
