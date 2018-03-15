@@ -5,9 +5,8 @@ import (
 	"log"
 
 	"github.com/go-redis/redis"
-	"github.com/jmoiron/sqlx"
-
 	"github.com/jinzhu/gorm"
+	"github.com/jmoiron/sqlx"
 )
 
 var db *sqlx.DB

@@ -13,6 +13,7 @@ CREATE TABLE Students (
     Gender TEXT NOT NULL, 
     DOB TEXT NOT NULL,
     SchoolYear INTEGER NOT NULL,
+    CurrentLessonID TEXT NOT NULL,
     UID TEXT NOT NULL,
     FOREIGN KEY(UID) REFERENCES Users
 );
@@ -26,16 +27,28 @@ CREATE TABLE Instructors (
     FOREIGN KEY(UID) REFERENCES Users
 );
 
+CREATE TABLE Units (
+    UnitName TEXT NOT NULL,
+    UnitID TEXT,
+    UnitDescription TEXT,
+    CreatedAt TIMESTAMP DEFAULT current_timestamp,
+    UpdatedAt TIMESTAMP,
+    DeletedAt TIMESTAMP DEFAULT current_timestamp,
+    PRIMARY KEY(UnitID)
+);
+
 CREATE TABLE Chapters (
     ChapterID TEXT,
     ChapterName TEXT,
     ChapterDescription TEXT,
+    UnitID Text NOT NULL,
+    FOREIGN KEY(UnitID) REFERENCES Units,
     PRIMARY KEY(ChapterID)
 );
 
 CREATE TABLE Lessons (
     LessonName TEXT,
-    LessonContent TEXT,
+    LessonContent TEXT[][],
     LessonID TEXT,
     ChapterID TEXT,
     CreatedAt TIMESTAMP DEFAULT current_timestamp,
@@ -69,6 +82,22 @@ CREATE TABLE LessonsCompleted (
     FOREIGN KEY(LessonID) REFERENCES Lessons,
     FOREIGN KEY(UID) REFERENCES Users,
     PRIMARY KEY(LessonID, UID)
+);
+
+CREATE TABLE ChaptersCompleted (
+    ChapterID TEXT NOT NULL,
+    UID TEXT NOT NULL,
+    FOREIGN KEY(ChapterID) REFERENCES Chapters,
+    FOREIGN KEY(UID) REFERENCES Users,
+    PRIMARY KEY(UID, ChapterID)
+);
+
+CREATE TABLE UnitsCompleted (
+    UnitID TEXT NOT NULL,
+    UID TEXT NOT NULL,
+    FOREIGN KEY(UnitID) REFERENCES Units,
+    FOREIGN KEY(UID) REFERENCES Users,
+    PRIMARY KEY(UnitID, UID)
 );
 
 CREATE TABLE Enrolled (

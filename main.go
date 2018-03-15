@@ -12,7 +12,6 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
 const (
@@ -30,17 +29,22 @@ func main() {
 	}
 
 	router := mux.NewRouter()
-	auth := router.PathPrefix("/auth").Subrouter()
-	lesson := router.PathPrefix("/lesson").Subrouter()
-	chapter := router.PathPrefix("/chapter").Subrouter()
 
+	auth := router.PathPrefix("/auth").Subrouter()
 	auth.HandleFunc("/login", routes.HandleLogin).Methods("POST")
 	auth.HandleFunc("/signup", routes.HandleSignup).Methods("POST")
 
+	lesson := router.PathPrefix("/lesson").Subrouter()
 	lesson.HandleFunc("/create", routes.HandleLessonCreate).Methods("POST")
 	lesson.HandleFunc("/completed", routes.HandleUserCompletedLesson).Methods("POST")
 
+	chapter := router.PathPrefix("/chapter").Subrouter()
 	chapter.HandleFunc("/create", routes.HandleChapterCreate).Methods("POST")
+	chapter.HandleFunc("/completed", routes.HandleUserCompletedChapter).Methods("POST")
+
+	unit := router.PathPrefix("/unit").Subrouter()
+	unit.HandleFunc("/create", routes.HandleUnitCreate).Methods("POST")
+	unit.HandleFunc("/completed", routes.HandleUserCompletedUnit).Methods("POST")
 
 	// home.Use(routes.AuthMiddleware)
 	loggingRouter := handlers.LoggingHandler(os.Stdout, router)
