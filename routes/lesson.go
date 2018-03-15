@@ -3,9 +3,10 @@ package routes
 import (
 	"encoding/json"
 	"fmt"
-	"lavazares/models"
 	"log"
 	"net/http"
+
+	"github.com/lavazares/models"
 )
 
 func HandleLessonCreate(w http.ResponseWriter, r *http.Request) {

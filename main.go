@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
-	"lavazares/models"
-	"lavazares/routes"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/lavazares/routes"
+
+	"github.com/lavazares/models"
 
 	"github.com/rs/cors"
 

@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"lavazares/models"
+	"github.com/lavazares/models"
 )
 
 //HandleLogin logs in a user
