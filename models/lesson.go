@@ -15,14 +15,14 @@ import (
 // is an individual row that a person has to type.
 // ChapterID is a foreign key reference to it's parent Chapter that it belongs to.
 type Lesson struct {
-	LessonID           string     `json:"-" db:"LessonID"`
-	CreatedAt          time.Time  `json:"-" db:"CreatedAt"`
-	UpdatedAt          time.Time  `json:"-" db:"UpdatedAt"`
-	DeletedAt          *time.Time `json:"-" db:"DeletedAt"`
-	LessonName         string     `json:"lessonName" db:"LessonName"`
-	LessonContent      []string   `json:"lessonContent" db:"LessonContent"`
-	MinimumScoreToPass int        `json:"minScore" db:"MinimumScoreToPass"`
-	ChapterID          string     `json:"chapterID" db:"ChapterID"`
+	LessonID           string     `json:"-" db:"lessonid"`
+	CreatedAt          time.Time  `json:"-" db:"createdat"`
+	UpdatedAt          time.Time  `json:"-" db:"updatedat"`
+	DeletedAt          *time.Time `json:"-" db:"deletedat"`
+	LessonName         string     `json:"lessonName" db:"lessonname"`
+	LessonContent      []string   `json:"lessonContent" db:"lessoncontent"`
+	MinimumScoreToPass int        `json:"minScore" db:"minimumscoretopass"`
+	ChapterID          string     `json:"chapterID" db:"chapterid"`
 }
 
 // Chapter metadata. Maps directly to SQL definition in DB.
@@ -131,8 +131,8 @@ func NewChapter(chapterReq []byte) (*Chapter, error) {
 	chapter.ChapterID = xid.New().String()
 
 	_, err = db.NamedQuery(
-		`INSERT INTO Chapters(ChapterID, ChapterName, ChapterDescription)
-		VALUES(:ChapterID, :ChapterName, :ChapterDescription)`,
+		`INSERT INTO Chapters(ChapterID, ChapterName, ChapterDescription, UnitID)
+		VALUES(:ChapterID, :ChapterName, :ChapterDescription, :UnitID)`,
 		chapter)
 	if err != nil {
 		return nil, err
@@ -171,7 +171,7 @@ func UserCompletedLesson(lessonComplete LessonsComplete) error {
 	return err
 }
 
-func GetUncompletedLessons(uid string) (*[]Lesson, error) {
+func GetUncompletedLessons(uid string) (*[]map[string]interface{}, error) {
 	rows, err := db.Queryx(
 		`select * from lessons L 
 		where L.lessonid not in (
@@ -184,13 +184,66 @@ func GetUncompletedLessons(uid string) (*[]Lesson, error) {
 		return nil, err
 	}
 
-	lessons := []Lesson{}
+	lessons := []map[string]interface{}{}
 
 	for rows.Next() {
-		lesson := Lesson{}
-		err = rows.StructScan(&lesson)
+		lesson := make(map[string]interface{})
+		err = rows.MapScan(lesson)
 		lessons = append(lessons, lesson)
 	}
 	fmt.Println(lessons)
 	return &lessons, nil
+}
+
+func GetBulkInfo(forUser string) (*map[string]interface{}, error) {
+	lessons := []map[string]interface{}{}
+	rows, err := db.Queryx("SELECT * FROM Lessons")
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		lesson := make(map[string]interface{})
+		rows.MapScan(lesson)
+		lessons = append(lessons, lesson)
+	}
+
+	chapters := []map[string]interface{}{}
+	rows, err = db.Queryx("SELECT * FROM Chapters")
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		chapter := make(map[string]interface{})
+		rows.MapScan(chapter)
+		chapters = append(chapters, chapter)
+	}
+
+	units := []map[string]interface{}{}
+	rows, err = db.Queryx("SELECT * FROM Units")
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		unit := make(map[string]interface{})
+		rows.MapScan(unit)
+		units = append(units, unit)
+	}
+
+	uncompletedLessons, err := GetUncompletedLessons(forUser)
+	if err != nil {
+		return nil, err
+	}
+
+	bulkRespForUser := make(map[string]interface{})
+	bulkRespForUser["lessons"] = lessons
+	bulkRespForUser["chapters"] = chapters
+	bulkRespForUser["units"] = units
+	bulkRespForUser["uncompletedLessons"] = uncompletedLessons
+
+	fmt.Println(bulkRespForUser)
+
+	return &bulkRespForUser, err
 }

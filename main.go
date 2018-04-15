@@ -48,6 +48,8 @@ func main() {
 	unit.HandleFunc("/create", routes.HandleUnitCreate).Methods("POST")
 	unit.HandleFunc("/completed", routes.HandleUserCompletedUnit).Methods("POST")
 
+	router.HandleFunc("/bulk", routes.HandleBulkGet).Methods("POST")
+
 	// home.Use(routes.AuthMiddleware)
 	loggingRouter := handlers.LoggingHandler(os.Stdout, router)
 

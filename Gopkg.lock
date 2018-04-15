@@ -97,15 +97,9 @@
   packages = ["bcrypt","blowfish"]
   revision = "beaf6a35706e5032ae4c3fcf342c663c069f44d2"
 
-[[projects]]
-  name = "gopkg.in/yaml.v2"
-  packages = ["."]
-  revision = "7f97868eec74b32b0982dd158a51a446d1da7eb5"
-  version = "v2.1.1"
-
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "093fd24af965673490985af23a0cd210982404b57e1ab4d61e686f5731c9acf3"
+  inputs-digest = "c370d8278501da2f1ae2fbb68ef7315654f2462371205828b682bdcc3fbe7d6b"
   solver-name = "gps-cdcl"
   solver-version = 1
