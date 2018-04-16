@@ -31,7 +31,6 @@ type Chapter struct {
 	ChapterID          string `json:"-" db:"ChapterID"`
 	ChapterName        string `json:"chapterName" db:"ChapterName"`
 	ChapterDescription string `json:"ChapterDescription" db:"ChapterDescription"`
-	UnitID             string `json:"unitID" db:"UnitID"`
 }
 
 //Unit metadata. Maps directly to SQL definition in DB.
@@ -131,8 +130,8 @@ func NewChapter(chapterReq []byte) (*Chapter, error) {
 	chapter.ChapterID = xid.New().String()
 
 	_, err = db.NamedQuery(
-		`INSERT INTO Chapters(ChapterID, ChapterName, ChapterDescription, UnitID)
-		VALUES(:ChapterID, :ChapterName, :ChapterDescription, :UnitID)`,
+		`INSERT INTO Chapters(ChapterID, ChapterName, ChapterDescription)
+		VALUES(:ChapterID, :ChapterName, :ChapterDescription)`,
 		chapter)
 	if err != nil {
 		return nil, err
