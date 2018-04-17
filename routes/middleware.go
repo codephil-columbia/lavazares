@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/lavazares/models"
+	"lavazares/models"
 )
 
 //AuthMiddleware checks to see if session is valid, else throws error

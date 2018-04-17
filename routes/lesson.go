@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/lavazares/models"
+	"lavazares/models"
 )
 
 func HandleLessonCreate(w http.ResponseWriter, r *http.Request) {
@@ -36,6 +36,8 @@ func HandleLessonCreate(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+//connStr = "user=codephil dbname=lavazaresdb password=codephil! port=5432 host=lavazares-db1.cnodp99ehkll.us-west-2.rds.amazonaws.com sslmode=disable"
+
 func HandleChapterCreate(w http.ResponseWriter, r *http.Request) {
 	chapterRequest, err := requestToBytes(r.Body)
 	if err != nil {
@@ -56,89 +58,49 @@ func HandleChapterCreate(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func HandleUnitCreate(w http.ResponseWriter, r *http.Request) {
-	unitRequest, err := requestToBytes(r.Body)
-	if err != nil {
-		log.Printf("Error reading unit request: %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+// func HandleUserCompletedLesson(w http.ResponseWriter, r *http.Request) {
+// 	lessonCompleteReq, err := requestToBytes(r.Body)
+// 	if err != nil {
+// 		log.Printf("Could not convert lesson request to bytes: %v", err)
+// 		w.WriteHeader(http.StatusBadRequest)
+// 		return
+// 	}
 
-	_, err = models.NewUnit(unitRequest)
-	if err != nil {
-		log.Printf("Error creating unit model: %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	return
-}
+// 	completedLesson := models.LessonsComplete{}
+// 	json.Unmarshal(lessonCompleteReq, &completedLesson)
 
-func HandleUserCompletedLesson(w http.ResponseWriter, r *http.Request) {
-	lessonCompleteReq, err := requestToBytes(r.Body)
-	if err != nil {
-		log.Printf("Could not convert lesson request to bytes: %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+// 	err = models.UserCompletedLesson(completedLesson)
+// 	if err != nil {
+// 		log.Printf("Could not add completed lesson: %v", err)
+// 		w.WriteHeader(http.StatusBadRequest)
+// 		return
+// 	}
 
-	completedLesson := models.LessonsComplete{}
-	json.Unmarshal(lessonCompleteReq, &completedLesson)
+// 	w.WriteHeader(http.StatusOK)
+// 	return
+// }
 
-	err = models.UserCompletedLesson(completedLesson)
-	if err != nil {
-		log.Printf("Could not add completed lesson: %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+// func HandleUserCompletedChapter(w http.ResponseWriter, r *http.Request) {
+// 	chapterCompleteReq, err := requestToBytes(r.Body)
+// 	if err != nil {
+// 		log.Printf("Error converting request to bytes: %v", err)
+// 		w.WriteHeader(http.StatusBadRequest)
+// 		return
+// 	}
 
-	w.WriteHeader(http.StatusOK)
-	return
-}
+// 	completedChapter := models.ChapterComplete{}
+// 	json.Unmarshal(chapterCompleteReq, &completedChapter)
 
-func HandleUserCompletedChapter(w http.ResponseWriter, r *http.Request) {
-	chapterCompleteReq, err := requestToBytes(r.Body)
-	if err != nil {
-		log.Printf("Error converting request to bytes: %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+// 	err = models.UserCompletedChapter(completedChapter)
+// 	if err != nil {
+// 		log.Printf("Error inserting into db: %v", err)
+// 		w.WriteHeader(http.StatusBadRequest)
+// 		return
+// 	}
 
-	completedChapter := models.ChapterComplete{}
-	json.Unmarshal(chapterCompleteReq, &completedChapter)
-
-	err = models.UserCompletedChapter(completedChapter)
-	if err != nil {
-		log.Printf("Error inserting into db: %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	return
-}
-
-func HandleUserCompletedUnit(w http.ResponseWriter, r *http.Request) {
-	unitCompleteReq, err := requestToBytes(r.Body)
-	if err != nil {
-		log.Printf("Error converting request to bytes: %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	completedUnit := models.UnitComplete{}
-	json.Unmarshal(unitCompleteReq, &completedUnit)
-
-	err = models.UserCompletedUnit(completedUnit)
-	if err != nil {
-		log.Printf("Error inserting into db: %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	return
-}
+// 	w.WriteHeader(http.StatusOK)
+// 	return
+// }
 
 func HandleBulkGet(w http.ResponseWriter, r *http.Request) {
 	uidReq, err := requestToBytes(r.Body)

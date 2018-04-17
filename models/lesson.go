@@ -20,53 +20,18 @@ type Lesson struct {
 	UpdatedAt          time.Time  `json:"-" db:"updatedat"`
 	DeletedAt          *time.Time `json:"-" db:"deletedat"`
 	LessonName         string     `json:"lessonName" db:"lessonname"`
-	LessonContent      []string   `json:"lessonContent" db:"lessoncontent"`
-	MinimumScoreToPass int        `json:"minScore" db:"minimumscoretopass"`
+	LessonText         []string   `json:"lessonContent" db:"lessontext"`
+	MinimumScoreToPass [][]int    `json:"minScore" db:"minimumscoretopass"`
 	ChapterID          string     `json:"chapterID" db:"chapterid"`
+	Image              [][]string `json:"imageID" db:"image"`
+	LessonDescriptions [][]string `json:"lessonDescriptions" db:"lessondescriptions"`
 }
 
 // Chapter metadata. Maps directly to SQL definition in DB.
-// UnitID is a foreign key reference to the parent Unit that Chapter belongs to.
 type Chapter struct {
 	ChapterID          string `json:"-" db:"ChapterID"`
 	ChapterName        string `json:"chapterName" db:"ChapterName"`
 	ChapterDescription string `json:"ChapterDescription" db:"ChapterDescription"`
-}
-
-//Unit metadata. Maps directly to SQL definition in DB.
-type Unit struct {
-	UnitName        string     `json:"unitName" db:"UnitName"`
-	UnitDescription string     `json:"unitDescription" db:"UnitDescription"`
-	UnitID          string     `json:"-" db:"UnitID"`
-	CreatedAt       time.Time  `json:"-" db:"CreatedAt"`
-	UpdatedAt       time.Time  `json:"-" db:"UpdatedAt"`
-	DeletedAt       *time.Time `json:"-" db:"DeletedAt"`
-}
-
-// LessonsComplete holds the LessonID and UserID for all of the Lessons that a
-// User has completed.
-type LessonsComplete struct {
-	LessonID string `json:"lessonID" db:"LessonID"`
-	UID      string `json:"uid" db:"UID"`
-}
-
-// ChapterComplete holds the ChapterID and User ID for all of the chapters
-// that a User has completed
-type ChapterComplete struct {
-	ChapterID string `json:"chapterID" db:"ChapterID"`
-	UID       string `json:"uid" db:"UID"`
-}
-
-// UnitComplete holds UnitID and User ID for all of the units that
-// a User has completed
-type UnitComplete struct {
-	UnitID string `json:"unitID" db:"UnitID"`
-	UID    string `json:"uid" db:"UID"`
-}
-
-type NextLessonReq struct {
-	UnitID    string `json:"unitID"`
-	ChapterID string `json:"chapterID"`
 }
 
 // NewLesson creates a new Lesson from a lessonRequest and inserts it into DB.
@@ -88,7 +53,7 @@ func NewLesson(lessonRequest []byte) (*Lesson, error) {
 		`INSERT INTO Lessons 
 		(LessonID, LessonName, LessonContent, MinimumScoreToPass, ChapterID)
 		VALUES($1, $2, $3, $4, $5)`,
-		lesson.LessonID, lesson.LessonName, pq.Array(lesson.LessonContent),
+		lesson.LessonID, lesson.LessonName, pq.Array(lesson.LessonText),
 		lesson.MinimumScoreToPass, lesson.ChapterID)
 
 	if err != nil {
@@ -96,27 +61,6 @@ func NewLesson(lessonRequest []byte) (*Lesson, error) {
 	}
 
 	return &lesson, nil
-}
-
-// NewUnit creates a Unit from a unitReq and inserts it into DB.
-func NewUnit(unitReq []byte) (*Unit, error) {
-	unit := Unit{}
-	err := json.Unmarshal(unitReq, &unit)
-	if err != nil {
-		return nil, err
-	}
-
-	unit.UnitID = xid.New().String()
-
-	_, err = db.NamedQuery(
-		`INSERT INTO Units(UnitName, UnitID, UnitDescription)
-		VALUES(:UnitName, :UnitID, :UnitDescription)`,
-		unit)
-	if err != nil {
-		return nil, err
-	}
-
-	return &unit, err
 }
 
 // NewChapter creates a Chapter from a chapterReq and inserts it into DB.
@@ -138,36 +82,6 @@ func NewChapter(chapterReq []byte) (*Chapter, error) {
 	}
 
 	return &chapter, nil
-}
-
-// UserCompletedUnit inserts UnitID User ID pair when a user completes a unit
-func UserCompletedUnit(unitComplete UnitComplete) error {
-	_, err := db.NamedQuery(
-		`INSERT INTO UnitsCompleted(UnitID, UID)
-		VALUES (:UnitID, :UID)`,
-		unitComplete)
-
-	return err
-}
-
-// UserCompletedChapter takes UID of User and ChapterID of the chapter that
-// they completed and inserts the pair into the DB.
-func UserCompletedChapter(chapterComplete ChapterComplete) error {
-	_, err := db.NamedQuery(
-		`INSERT INTO ChaptersCompleted(ChapterID, UID)
-		VALUES(:ChapterID, :UID)`,
-		chapterComplete)
-	return err
-}
-
-// UserCompletedLesson takes UID of User and LessonID of the Lesson that
-// they completed and inserts the pair into DB.
-func UserCompletedLesson(lessonComplete LessonsComplete) error {
-	_, err := db.NamedQuery(
-		`INSERT INTO LessonsCompleted(LessonID, UID)
-		VALUES(:LessonID, :UID)`,
-		lessonComplete)
-	return err
 }
 
 func GetUncompletedLessons(uid string) (*[]map[string]interface{}, error) {
@@ -219,18 +133,6 @@ func GetBulkInfo(forUser string) (*map[string]interface{}, error) {
 		chapters = append(chapters, chapter)
 	}
 
-	units := []map[string]interface{}{}
-	rows, err = db.Queryx("SELECT * FROM Units")
-	if err != nil {
-		return nil, err
-	}
-
-	for rows.Next() {
-		unit := make(map[string]interface{})
-		rows.MapScan(unit)
-		units = append(units, unit)
-	}
-
 	uncompletedLessons, err := GetUncompletedLessons(forUser)
 	if err != nil {
 		return nil, err
@@ -239,7 +141,6 @@ func GetBulkInfo(forUser string) (*map[string]interface{}, error) {
 	bulkRespForUser := make(map[string]interface{})
 	bulkRespForUser["lessons"] = lessons
 	bulkRespForUser["chapters"] = chapters
-	bulkRespForUser["units"] = units
 	bulkRespForUser["uncompletedLessons"] = uncompletedLessons
 
 	fmt.Println(bulkRespForUser)

@@ -1,19 +1,11 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"log"
-	"net/http"
-	"os"
 
-	"github.com/lavazares/routes"
-
-	"github.com/lavazares/models"
-
-	"github.com/rs/cors"
-
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
+	"lavazares/app"
+	"lavazares/models"
 )
 
 const (
@@ -21,6 +13,15 @@ const (
 )
 
 func main() {
+
+	user := flag.String("user", "codephil", "database user")
+	dbname := flag.String("dbname", "lavazaresDB", "dbname")
+	password := flag.String("password", "password", "dbpassword")
+	port := flag.String("port", "5432", "dbport")
+	host := flag.String("host", "localhost", "dbhost")
+	ssl := flag.String("ssl", "disable", "ssl mode")
+
+	connStr := fmt.Sprintf("user=%s dbname=%s, password=%s, port-%s, host=%s, sslmode=%s", *user, *dbname, *password, *port, *host, *ssl)
 
 	if err := models.InitDB(connStr); err != nil {
 		fmt.Println(err)
@@ -30,29 +31,7 @@ func main() {
 		fmt.Println(err)
 	}
 
-	router := mux.NewRouter()
+	app := app.NewApp()
 
-	auth := router.PathPrefix("/auth").Subrouter()
-	auth.HandleFunc("/login", routes.HandleLogin).Methods("POST")
-	auth.HandleFunc("/signup", routes.HandleSignup).Methods("POST")
-
-	lesson := router.PathPrefix("/lesson").Subrouter()
-	lesson.HandleFunc("/create", routes.HandleLessonCreate).Methods("POST")
-	lesson.HandleFunc("/completed", routes.HandleUserCompletedLesson).Methods("POST")
-
-	chapter := router.PathPrefix("/chapter").Subrouter()
-	chapter.HandleFunc("/create", routes.HandleChapterCreate).Methods("POST")
-	chapter.HandleFunc("/completed", routes.HandleUserCompletedChapter).Methods("POST")
-
-	unit := router.PathPrefix("/unit").Subrouter()
-	unit.HandleFunc("/create", routes.HandleUnitCreate).Methods("POST")
-	unit.HandleFunc("/completed", routes.HandleUserCompletedUnit).Methods("POST")
-
-	router.HandleFunc("/bulk", routes.HandleBulkGet).Methods("POST")
-
-	// home.Use(routes.AuthMiddleware)
-	loggingRouter := handlers.LoggingHandler(os.Stdout, router)
-
-	log.Println("listening on port 8081")
-	log.Println(http.ListenAndServe(":8081", cors.Default().Handler(loggingRouter)))
+	app.Run("8081")
 }
