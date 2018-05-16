@@ -3,6 +3,7 @@ CREATE TABLE Users (
     Password TEXT NOT NULL,
     Email TEXT NOT NULL,
     UID TEXT NOT NULL,
+    Occupation TEXT NOT NULL,
     CreatedAt TIMESTAMP DEFAULT current_timestamp,
     DeletedAt TIMESTAMP,
     UpdatedAt TIMESTAMP DEFAULT current_timestamp,

@@ -15,32 +15,25 @@ import (
 // is an individual row that a person has to type.
 // ChapterID is a foreign key reference to it's parent Chapter that it belongs to.
 type Lesson struct {
-	LessonID           string     `json:"-" db:"lessonid"`
-	CreatedAt          time.Time  `json:"-" db:"createdat"`
-	UpdatedAt          time.Time  `json:"-" db:"updatedat"`
-	DeletedAt          *time.Time `json:"-" db:"deletedat"`
-	LessonName         string     `json:"lessonName" db:"lessonname"`
-	LessonContent      []string   `json:"lessonContent" db:"lessoncontent"`
-	MinimumScoreToPass int        `json:"minScore" db:"minimumscoretopass"`
-	ChapterID          string     `json:"chapterID" db:"chapterid"`
+	LessonID           string         `db:"lessonid"`
+	CreatedAt          time.Time      `db:"createdat"`
+	UpdatedAt          time.Time      `db:"updatedat"`
+	DeletedAt          *time.Time     `db:"deletedat"`
+	LessonName         string         `db:"lessonname"`
+	LessonText         pq.StringArray `db:"lessontext"`
+	LessonDescriptions pq.StringArray `db:"lessondescriptions"`
+	MinimumScoreToPass pq.Int64Array  `db:"minimumscoretopass"`
+	ChapterID          string         `db:"chapterid"`
+	Image              string         `db:"image"`
 }
 
 // Chapter metadata. Maps directly to SQL definition in DB.
 // UnitID is a foreign key reference to the parent Unit that Chapter belongs to.
 type Chapter struct {
-	ChapterID          string `json:"-" db:"ChapterID"`
-	ChapterName        string `json:"chapterName" db:"ChapterName"`
-	ChapterDescription string `json:"ChapterDescription" db:"ChapterDescription"`
-}
-
-//Unit metadata. Maps directly to SQL definition in DB.
-type Unit struct {
-	UnitName        string     `json:"unitName" db:"UnitName"`
-	UnitDescription string     `json:"unitDescription" db:"UnitDescription"`
-	UnitID          string     `json:"-" db:"UnitID"`
-	CreatedAt       time.Time  `json:"-" db:"CreatedAt"`
-	UpdatedAt       time.Time  `json:"-" db:"UpdatedAt"`
-	DeletedAt       *time.Time `json:"-" db:"DeletedAt"`
+	ChapterID          string `db:"chapterid"`
+	ChapterName        string `db:"chaptername"`
+	ChapterDescription string `db:"chapterdescription"`
+	ChapterImage       string `db:"chapterimage"`
 }
 
 // LessonsComplete holds the LessonID and UserID for all of the Lessons that a
@@ -72,52 +65,31 @@ type NextLessonReq struct {
 // NewLesson creates a new Lesson from a lessonRequest and inserts it into DB.
 // We don't have to worry about populating any time fields since Postgres will fill
 // with current time if we leave it empty.
-func NewLesson(lessonRequest []byte) (*Lesson, error) {
-	lesson := Lesson{}
-	err := json.Unmarshal(lessonRequest, &lesson)
-	if err != nil {
-		return nil, err
-	}
+// func NewLesson(lessonRequest []byte) (*Lesson, error) {
+// 	lesson := Lesson{}
+// 	err := json.Unmarshal(lessonRequest, &lesson)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	lesson.LessonID = xid.New().String()
-	lesson.DeletedAt = nil
+// 	lesson.LessonID = xid.New().String()
+// 	lesson.DeletedAt = nil
 
-	// Can't user NamedQuery because sqlx does not support Arrays :(, instead convert to postgres array
-	// obj (note: does not support nested Arrays) and insert manually
-	_, err = db.Queryx(
-		`INSERT INTO Lessons 
-		(LessonID, LessonName, LessonContent, MinimumScoreToPass, ChapterID)
-		VALUES($1, $2, $3, $4, $5)`,
-		lesson.LessonID, lesson.LessonName, pq.Array(lesson.LessonContent),
-		lesson.MinimumScoreToPass, lesson.ChapterID)
+// 	// Can't user NamedQuery because sqlx does not support Arrays :(, instead convert to postgres array
+// 	// obj (note: does not support nested Arrays) and insert manually
+// 	_, err = db.Queryx(
+// 		`INSERT INTO Lessons
+// 		(LessonID, LessonName, LessonContent, MinimumScoreToPass, ChapterID)
+// 		VALUES($1, $2, $3, $4, $5)`,
+// 		lesson.LessonID, lesson.LessonName, pq.Array(lesson.LessonContent),
+// 		lesson.MinimumScoreToPass, lesson.ChapterID)
 
-	if err != nil {
-		return nil, err
-	}
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return &lesson, nil
-}
-
-// NewUnit creates a Unit from a unitReq and inserts it into DB.
-func NewUnit(unitReq []byte) (*Unit, error) {
-	unit := Unit{}
-	err := json.Unmarshal(unitReq, &unit)
-	if err != nil {
-		return nil, err
-	}
-
-	unit.UnitID = xid.New().String()
-
-	_, err = db.NamedQuery(
-		`INSERT INTO Units(UnitName, UnitID, UnitDescription)
-		VALUES(:UnitName, :UnitID, :UnitDescription)`,
-		unit)
-	if err != nil {
-		return nil, err
-	}
-
-	return &unit, err
-}
+// 	return &lesson, nil
+// }
 
 // NewChapter creates a Chapter from a chapterReq and inserts it into DB.
 func NewChapter(chapterReq []byte) (*Chapter, error) {
@@ -138,16 +110,6 @@ func NewChapter(chapterReq []byte) (*Chapter, error) {
 	}
 
 	return &chapter, nil
-}
-
-// UserCompletedUnit inserts UnitID User ID pair when a user completes a unit
-func UserCompletedUnit(unitComplete UnitComplete) error {
-	_, err := db.NamedQuery(
-		`INSERT INTO UnitsCompleted(UnitID, UID)
-		VALUES (:UnitID, :UID)`,
-		unitComplete)
-
-	return err
 }
 
 // UserCompletedChapter takes UID of User and ChapterID of the chapter that
@@ -194,7 +156,7 @@ func GetUncompletedLessons(uid string) (*[]map[string]interface{}, error) {
 	return &lessons, nil
 }
 
-func GetBulkInfo(forUser string) (*map[string]interface{}, error) {
+func AllLessons() (*map[string]interface{}, error) {
 	lessons := []map[string]interface{}{}
 	rows, err := db.Queryx("SELECT * FROM Lessons")
 	if err != nil {
@@ -219,30 +181,32 @@ func GetBulkInfo(forUser string) (*map[string]interface{}, error) {
 		chapters = append(chapters, chapter)
 	}
 
-	units := []map[string]interface{}{}
-	rows, err = db.Queryx("SELECT * FROM Units")
-	if err != nil {
-		return nil, err
-	}
-
-	for rows.Next() {
-		unit := make(map[string]interface{})
-		rows.MapScan(unit)
-		units = append(units, unit)
-	}
-
-	uncompletedLessons, err := GetUncompletedLessons(forUser)
-	if err != nil {
-		return nil, err
-	}
+	// uncompletedLessons, err := GetUncompletedLessons(forUser)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	bulkRespForUser := make(map[string]interface{})
 	bulkRespForUser["lessons"] = lessons
 	bulkRespForUser["chapters"] = chapters
-	bulkRespForUser["units"] = units
-	bulkRespForUser["uncompletedLessons"] = uncompletedLessons
+	// bulkRespForUser["uncompletedLessons"] = uncompletedLessons
 
 	fmt.Println(bulkRespForUser)
 
 	return &bulkRespForUser, err
+}
+
+func GetLesson(lessonID string) (*Lesson, error) {
+	lesson := Lesson{}
+	rows, err := db.Queryx("SELECT * FROM Lessons where lessonid=$1", lessonID)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		rows.StructScan(&lesson)
+	}
+
+	fmt.Println(lesson)
+
+	return &lesson, nil
 }

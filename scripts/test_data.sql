@@ -1,8 +1,8 @@
-INSERT INTO Users(Username, Password, Email, UID) 
-VALUES('ibarrac27', 'password', 'ibarrac27@gmail.com', '12345');
+INSERT INTO Users(Username, Password, Email, UID, Occupation) 
+VALUES('ibarrac27', 'password', 'ibarrac27@gmail.com', '12345', 'Student');
 
-INSERT INTO Users(Username, Password, Email, UID)
-VALUES('nwchen', 'password', 'nwchen@columbia.edu', '54321');
+INSERT INTO Users(Username, Password, Email, UID, Occupation)
+VALUES('nwchen', 'password', 'nwchen@columbia.edu', '54321', 'Student');
 
 INSERT INTO Students(Gender, DOB, SchoolYear, CurrentLessonID, UID) 
 VALUES('M', '10/27/1997', 2018, '123', '12345');
@@ -27,9 +27,3 @@ VALUES('First Lesson', '{{"hello"}, {"world"}}', '123', '1');
 
 INSERT INTO Lessons(LessonName, LessonContent, LessonID, ChapterID)
 VALUES('Second Lesson', '{{"goodbye"}, {"until next time"}}', '1234', '1');
-
-INSERT INTO LessonsCompleted (LessonID, UID)
-VALUES ('123', '12345');
-
-INSERT INTO ChaptersCompleted (ChapterID, UID)
-VALUES ('1', '12345');

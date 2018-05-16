@@ -6,34 +6,90 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/lavazares/models"
+	"lavazares/models"
 )
 
-func HandleLessonCreate(w http.ResponseWriter, r *http.Request) {
-	lessonRequest, err := requestToBytes(r.Body)
+func Hello(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("hello"))
+	return
+}
+
+func GetLessonByID(w http.ResponseWriter, r *http.Request) {
+	req, _ := requestToBytes(r.Body)
+	body := make(map[string]string)
+	json.Unmarshal(req, &body)
+
+	fmt.Println(body["lessonid"])
+
+	l, err := models.GetLesson(body["lessonid"])
 	if err != nil {
-		log.Printf("Could not convert request to bytes: %v", err)
+		log.Printf("%v", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	l := models.Lesson{}
-
-	err = json.Unmarshal(lessonRequest, &l)
+	err = json.NewEncoder(w).Encode(l)
 	if err != nil {
-		log.Println(err)
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+}
+
+func UpdateModel(w http.ResponseWriter, r *http.Request) {
+	req, err := requestToBytes(r.Body)
+	if err != nil {
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	body := make(map[string]string)
+	err = json.Unmarshal(req, &body)
+	if err != nil {
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	_, err = models.NewLesson(lessonRequest)
+	fmt.Println(body)
+
+	err = models.UpdateModel(body["model"], body["field"], body["val"], body["identifier"], body["identifierVal"])
 	if err != nil {
-		log.Printf("Error creating error object: %v", err)
-		w.WriteHeader(http.StatusBadRequest)
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	return
+
+}
+
+func HandleLessonCreate(w http.ResponseWriter, r *http.Request) {
+	// lessonRequest, err := requestToBytes(r.Body)
+	// if err != nil {
+	// 	log.Printf("Could not convert request to bytes: %v", err)
+	// 	w.WriteHeader(http.StatusBadRequest)
+	// 	return
+	// }
+
+	// l := models.Lesson{}
+
+	// err = json.Unmarshal(lessonRequest, &l)
+	// if err != nil {
+	// 	log.Println(err)
+	// 	return
+	// }
+
+	// _, err = models.NewLesson(lessonRequest)
+	// if err != nil {
+	// 	log.Printf("Error creating error object: %v", err)
+	// 	w.WriteHeader(http.StatusBadRequest)
+	// 	return
+	// }
+
+	// w.WriteHeader(http.StatusOK)
+	// return
 }
 
 func HandleChapterCreate(w http.ResponseWriter, r *http.Request) {
@@ -57,21 +113,21 @@ func HandleChapterCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleUnitCreate(w http.ResponseWriter, r *http.Request) {
-	unitRequest, err := requestToBytes(r.Body)
-	if err != nil {
-		log.Printf("Error reading unit request: %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+	// unitRequest, err := requestToBytes(r.Body)
+	// if err != nil {
+	// 	log.Printf("Error reading unit request: %v", err)
+	// 	w.WriteHeader(http.StatusBadRequest)
+	// 	return
+	// }
 
-	_, err = models.NewUnit(unitRequest)
-	if err != nil {
-		log.Printf("Error creating unit model: %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	return
+	// _, err = models.NewUnit(unitRequest)
+	// if err != nil {
+	// 	log.Printf("Error creating unit model: %v", err)
+	// 	w.WriteHeader(http.StatusBadRequest)
+	// 	return
+	// }
+	// w.WriteHeader(http.StatusOK)
+	// return
 }
 
 func HandleUserCompletedLesson(w http.ResponseWriter, r *http.Request) {
@@ -119,25 +175,25 @@ func HandleUserCompletedChapter(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleUserCompletedUnit(w http.ResponseWriter, r *http.Request) {
-	unitCompleteReq, err := requestToBytes(r.Body)
-	if err != nil {
-		log.Printf("Error converting request to bytes: %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+	// unitCompleteReq, err := requestToBytes(r.Body)
+	// if err != nil {
+	// 	log.Printf("Error converting request to bytes: %v", err)
+	// 	w.WriteHeader(http.StatusBadRequest)
+	// 	return
+	// }
 
-	completedUnit := models.UnitComplete{}
-	json.Unmarshal(unitCompleteReq, &completedUnit)
+	// completedUnit := models.UnitComplete{}
+	// json.Unmarshal(unitCompleteReq, &completedUnit)
 
-	err = models.UserCompletedUnit(completedUnit)
-	if err != nil {
-		log.Printf("Error inserting into db: %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+	// err = models.UserCompletedUnit(completedUnit)
+	// if err != nil {
+	// 	log.Printf("Error inserting into db: %v", err)
+	// 	w.WriteHeader(http.StatusBadRequest)
+	// 	return
+	// }
 
-	w.WriteHeader(http.StatusOK)
-	return
+	// w.WriteHeader(http.StatusOK)
+	// return
 }
 
 func HandleBulkGet(w http.ResponseWriter, r *http.Request) {
@@ -156,11 +212,9 @@ func HandleBulkGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uid := m["uid"].(string)
-
-	bulkInfo, err := models.GetBulkInfo(uid)
+	bulkInfo, err := models.AllLessons()
 	if err != nil {
-		log.Printf("Error getting bulk info for user with id %s: %v", uid, err)
+		log.Printf("Error getting bulk info for user with id: %v", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}

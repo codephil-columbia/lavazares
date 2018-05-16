@@ -3,8 +3,6 @@ package routes
 import (
 	"log"
 	"net/http"
-
-	"github.com/lavazares/models"
 )
 
 //AuthMiddleware checks to see if session is valid, else throws error
@@ -24,12 +22,12 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		exists := models.IsInSession(sessionID)
-		if exists == 0 {
-			log.Printf("Session id does not exist:")
-			http.Error(w, "Session ID invalid", http.StatusForbidden)
-			return
-		}
+		// exists := models.IsInSession(sessionID)
+		// if exists == 0 {
+		// 	log.Printf("Session id does not exist:")
+		// 	http.Error(w, "Session ID invalid", http.StatusForbidden)
+		// 	return
+		// }
 
 		log.Printf("user is authenticated")
 		next.ServeHTTP(w, r)

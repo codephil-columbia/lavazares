@@ -6,27 +6,23 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/lavazares/routes"
+	_ "github.com/lib/pq"
 
-	"github.com/lavazares/models"
+	"lavazares/routes"
 
-	"github.com/rs/cors"
+	"lavazares/models"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
 const (
-	connStr = "user=codephil dbname=lavazaresDB password=password port=5432 host=localhost sslmode=disable"
+	connStr = "user=codephil dbname=lavazaresdb password=codephil! port=5432 host=lavazares-db1.cnodp99ehkll.us-west-2.rds.amazonaws.com sslmode=disable"
 )
 
 func main() {
 
 	if err := models.InitDB(connStr); err != nil {
-		fmt.Println(err)
-	}
-
-	if err := models.InitRedisCache(); err != nil {
 		fmt.Println(err)
 	}
 
@@ -39,6 +35,7 @@ func main() {
 	lesson := router.PathPrefix("/lesson").Subrouter()
 	lesson.HandleFunc("/create", routes.HandleLessonCreate).Methods("POST")
 	lesson.HandleFunc("/completed", routes.HandleUserCompletedLesson).Methods("POST")
+	lesson.HandleFunc("/get", routes.GetLessonByID).Methods("POST")
 
 	chapter := router.PathPrefix("/chapter").Subrouter()
 	chapter.HandleFunc("/create", routes.HandleChapterCreate).Methods("POST")
@@ -49,10 +46,11 @@ func main() {
 	unit.HandleFunc("/completed", routes.HandleUserCompletedUnit).Methods("POST")
 
 	router.HandleFunc("/bulk", routes.HandleBulkGet).Methods("POST")
+	router.HandleFunc("/update", routes.UpdateModel).Methods("POST")
 
 	// home.Use(routes.AuthMiddleware)
 	loggingRouter := handlers.LoggingHandler(os.Stdout, router)
 
-	log.Println("listening on port 8081")
-	log.Println(http.ListenAndServe(":8081", cors.Default().Handler(loggingRouter)))
+	log.Println("listening on port 5000")
+	log.Println(http.ListenAndServe(":5000", loggingRouter))
 }

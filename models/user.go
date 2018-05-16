@@ -12,27 +12,62 @@ import (
 
 //User metadata that is stored in the database
 type User struct {
-	UID       string     `json:"-"`
-	CreatedAt time.Time  `json:"-"`
-	UpdatedAt time.Time  `json:"-"`
-	DeletedAt *time.Time `json:"-"`
-	Username  string     `json:"username"`
-	Email     string     `json:"email"`
-	Password  string     `json:"password"`
+	UID        string     `json:"-"`
+	CreatedAt  time.Time  `json:"-"`
+	UpdatedAt  time.Time  `json:"-"`
+	DeletedAt  *time.Time `json:"-"`
+	Username   string     `json:"username"`
+	Email      string     `json:"email"`
+	Password   string     `json:"password"`
+	Occupation string     `json:"occupation"`
 }
 
-type UserSession struct {
-	SessionID string
-	UserID    string
-	LoginTime time.Time
+type Student struct {
+	Gender          string `json:"gender" db:"gender"`
+	DOB             string `json:"dob" db:"dob"`
+	SchoolYear      int    `json:"schoolyear" db:"schoolyear"`
+	CurrentLessonID string `json:"currentlessonid" db:"currentlessonid"`
+	UID             string `db:"uid"`
 }
 
-func NewUserSession(userID string) *UserSession {
-	return &UserSession{
-		xid.New().String(),
-		userID,
-		time.Now(),
+type Instructor struct {
+	Gender     string `json:"gender" db:"gender"`
+	DOB        string `json:"dob" db:"dob"`
+	SchoolType string `json:"schooltype" db:"schooltype"`
+	SchoolName string `json:"schoolname" db:"schoolname"`
+	UID        string `json:"uid" db:"uid"`
+}
+
+func NewStudent(fields []byte, u User) error {
+	s := Student{}
+	err := json.Unmarshal(fields, &s)
+	if err != nil {
+		return err
 	}
+	fmt.Println(s)
+	res, err := db.Exec("INSERT INTO students(Gender, DOB, SchoolYear, CurrentLessonID, UID) VALUES($1, $2, $3, $4, $5)",
+		s.Gender, s.DOB, s.SchoolYear, s.CurrentLessonID, u.UID)
+	if res != nil {
+		return err
+	}
+
+	return nil
+}
+
+func NewInstructor(fields []byte, u User) error {
+	s := Instructor{}
+	err := json.Unmarshal(fields, &s)
+	if err != nil {
+		return err
+	}
+	fmt.Println(s)
+	res, err := db.Exec("INSERT INTO instructors(Gender, DOB, SchoolType, SchoolName, UID) VALUES($1, $2, $3, $4, $5)",
+		s.Gender, s.DOB, s.SchoolType, s.SchoolName, u.UID)
+	if res != nil {
+		return err
+	}
+
+	return nil
 }
 
 func NewUser(fields []byte) (string, error) {
@@ -48,14 +83,36 @@ func NewUser(fields []byte) (string, error) {
 		return "", err
 	}
 
+	fmt.Println(u)
+
 	u.Password = hashedPassword
-	result := db.QueryRowx("INSERT INTO users(UID, Username, Email, Password) VALUES($1, $2, $3, $4)",
-		u.UID, u.Username, u.Email, u.Password).Err()
+	result := db.QueryRowx("INSERT INTO users(UID, Username, Email, Password, Occupation) VALUES($1, $2, $3, $4, $5)",
+		u.UID, u.Username, u.Email, u.Password, u.Occupation).Err()
 	if result != nil {
 		return "", err
 	}
 
+	switch u.Occupation {
+	case "student":
+		NewStudent(fields, u)
+	case "instructor":
+		NewInstructor(fields, u)
+	}
+
 	return u.UID, err
+}
+
+func UpdateModel(modelName, field, value, identifier, identifierVal string) error {
+	stmt := fmt.Sprintf("UPDATE %s SET %s='%s' WHERE %s='%s'", modelName, field, value, identifier, identifierVal)
+	fmt.Println(stmt)
+	result, err := db.Exec(stmt)
+	if result != nil {
+		return err
+	}
+
+	fmt.Println(result)
+
+	return nil
 }
 
 //AutheticateUser authenticates and returns a user
