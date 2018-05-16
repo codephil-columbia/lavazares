@@ -5,8 +5,8 @@ import (
 	"net/http"
 )
 
-//AuthMiddleware checks to see if session is valid, else throws error
-func AuthMiddleware(next http.Handler) http.Handler {
+//RequiresAuth checks to see if session is valid, else throws error
+func RequiresAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		session, err := store.Get(r, "session")
 		if err != nil {
