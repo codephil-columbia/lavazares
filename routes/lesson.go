@@ -92,6 +92,8 @@ func HandleLessonCreate(w http.ResponseWriter, r *http.Request) {
 	// return
 }
 
+//connStr = "user=codephil dbname=lavazaresdb password=codephil! port=5432 host=lavazares-db1.cnodp99ehkll.us-west-2.rds.amazonaws.com sslmode=disable"
+
 func HandleChapterCreate(w http.ResponseWriter, r *http.Request) {
 	chapterRequest, err := requestToBytes(r.Body)
 	if err != nil {

@@ -28,7 +28,6 @@ type Lesson struct {
 }
 
 // Chapter metadata. Maps directly to SQL definition in DB.
-// UnitID is a foreign key reference to the parent Unit that Chapter belongs to.
 type Chapter struct {
 	ChapterID          string `db:"chapterid"`
 	ChapterName        string `db:"chaptername"`

@@ -71,6 +71,7 @@ func NewInstructor(fields []byte, u User) error {
 }
 
 func NewUser(fields []byte) (string, error) {
+
 	u := User{}
 	err := json.Unmarshal(fields, &u)
 	if err != nil {

@@ -16,6 +16,7 @@ VALUES('BBCMais', '1');
 INSERT INTO Classrooms(ClassroomID, InstructorID, Year, Subject, SchoolID)
 VALUES('1', '54321', 2018, 'Computer Science', '1');
 
+<<<<<<< HEAD
 INSERT INTO Units(UnitName, UnitDescription, UnitID)
 VALUES ('Unit', 'Unit', '123');
 
@@ -27,3 +28,13 @@ VALUES('First Lesson', '{{"hello"}, {"world"}}', '123', '1');
 
 INSERT INTO Lessons(LessonName, LessonContent, LessonID, ChapterID)
 VALUES('Second Lesson', '{{"goodbye"}, {"until next time"}}', '1234', '1');
+=======
+INSERT INTO Chapters(ChapterID, ChapterName, ChapterDescription)
+VALUES ('1', 'First Chapter', 'Its the first chapter');
+
+INSERT INTO LessonsCompleted (LessonID, UID)
+VALUES ('123', '12345');
+
+INSERT INTO ChaptersCompleted (ChapterID, UID)
+VALUES ('1', '12345');
+>>>>>>> deb7a1d2624140e34a0575f68d6d10d0fe15c469

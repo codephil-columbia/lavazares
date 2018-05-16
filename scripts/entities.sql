@@ -28,34 +28,25 @@ CREATE TABLE Instructors (
     FOREIGN KEY(UID) REFERENCES Users
 );
 
-CREATE TABLE Units (
-    UnitName TEXT NOT NULL,
-    UnitID TEXT,
-    UnitDescription TEXT,
-    CreatedAt TIMESTAMP DEFAULT current_timestamp,
-    UpdatedAt TIMESTAMP,
-    DeletedAt TIMESTAMP DEFAULT current_timestamp,
-    PRIMARY KEY(UnitID)
-);
-
 CREATE TABLE Chapters (
     ChapterID TEXT,
     ChapterName TEXT,
     ChapterDescription TEXT,
-    UnitID Text NOT NULL,
-    FOREIGN KEY(UnitID) REFERENCES Units,
     PRIMARY KEY(ChapterID)
 );
 
+
 CREATE TABLE Lessons (
     LessonName TEXT,
-    LessonContent TEXT[][],
+    LessonText TEXT[][],
     LessonID TEXT,
     ChapterID TEXT,
+    Image Text[][],
+    LessonDescriptions TEXT[][],
     CreatedAt TIMESTAMP DEFAULT current_timestamp,
     DeletedAt TIMESTAMP,
     UpdatedAt TIMESTAMP DEFAULT current_timestamp,
-    MinimumScoreToPass INTEGER,
+    MinimumScoreToPass INTEGER[][],
     FOREIGN KEY(ChapterID) REFERENCES Chapters,
     PRIMARY KEY(LessonID)
 );
@@ -91,14 +82,6 @@ CREATE TABLE ChaptersCompleted (
     FOREIGN KEY(ChapterID) REFERENCES Chapters,
     FOREIGN KEY(UID) REFERENCES Users,
     PRIMARY KEY(UID, ChapterID)
-);
-
-CREATE TABLE UnitsCompleted (
-    UnitID TEXT NOT NULL,
-    UID TEXT NOT NULL,
-    FOREIGN KEY(UnitID) REFERENCES Units,
-    FOREIGN KEY(UID) REFERENCES Users,
-    PRIMARY KEY(UnitID, UID)
 );
 
 CREATE TABLE Enrolled (
