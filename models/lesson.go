@@ -209,3 +209,29 @@ func GetLesson(lessonID string) (*Lesson, error) {
 
 	return &lesson, nil
 }
+
+func NextLessonForStudent(uid string) (map[string]interface{}, error) {
+	lessonInfo := make(map[string]interface{})
+
+	s, err := GetStudent(uid)
+	if err != nil {
+		return nil, err
+	}
+	//select *
+	//from lessons L, chapters C
+	//where C.chaptername = 'Chapter 0: The Basics'
+	//and C.chapterid = L.chapterid
+	//and L.lessonid = 'd3f9c2a3-1edf-42a6-a24d-3a4ad4683036'
+
+	fmt.Println(s)
+
+	err = db.QueryRowx("select chapterimage, lessonname, chaptername from lessons L, chapters C where C.chaptername = $1 and C.chapterid = L.chapterid and L.lessonid = $2",
+		s.CurrentChapterName, s.CurrentLessonID).MapScan(lessonInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println(lessonInfo)
+
+	return lessonInfo, nil
+}

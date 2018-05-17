@@ -23,11 +23,12 @@ type User struct {
 }
 
 type Student struct {
-	Gender          string `json:"gender" db:"gender"`
-	DOB             string `json:"dob" db:"dob"`
-	SchoolYear      int    `json:"schoolyear" db:"schoolyear"`
-	CurrentLessonID string `json:"currentlessonid" db:"currentlessonid"`
-	UID             string `db:"uid"`
+	Gender             string `json:"gender" db:"gender"`
+	DOB                string `json:"dob" db:"dob"`
+	SchoolYear         int    `json:"schoolyear" db:"schoolyear"`
+	CurrentLessonID    string `json:"currentlessonid" db:"currentlessonid"`
+	CurrentChapterName string `db:"currentchaptername"`
+	UID                string `db:"uid"`
 }
 
 type Instructor struct {
@@ -45,8 +46,8 @@ func NewStudent(fields []byte, u User) error {
 		return err
 	}
 	fmt.Println(s)
-	res, err := db.Exec("INSERT INTO students(Gender, DOB, SchoolYear, CurrentLessonID, UID) VALUES($1, $2, $3, $4, $5)",
-		s.Gender, s.DOB, s.SchoolYear, s.CurrentLessonID, u.UID)
+	res, err := db.Exec("INSERT INTO students(Gender, DOB, SchoolYear, CurrentLessonID, CurrentChapterName UID) VALUES($1, $2, $3, $4, $5, $6)",
+		s.Gender, s.DOB, s.SchoolYear, s.CurrentLessonID, "Chapter 0: The Basics", u.UID)
 	if res != nil {
 		return err
 	}
@@ -114,6 +115,15 @@ func UpdateModel(modelName, field, value, identifier, identifierVal string) erro
 	fmt.Println(result)
 
 	return nil
+}
+
+func GetStudent(uid string) (*Student, error) {
+	s := Student{}
+	err := db.QueryRowx("SELECT * FROM students WHERE uid=$1", uid).StructScan(&s)
+	if err != nil {
+		return nil, err
+	}
+	return &s, nil
 }
 
 //AutheticateUser authenticates and returns a user

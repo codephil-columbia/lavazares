@@ -9,8 +9,35 @@ import (
 	"lavazares/models"
 )
 
-func Hello(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("hello"))
+func GetNextLessonForStudent(w http.ResponseWriter, r *http.Request) {
+	req, err := requestToBytes(r.Body)
+	if err != nil {
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	body := make(map[string]string)
+	err = json.Unmarshal(req, &body)
+	if err != nil {
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	nextLessonInfo, err := models.NextLessonForStudent(body["uid"])
+	if err != nil {
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err = json.NewEncoder(w).Encode(nextLessonInfo)
+	if err != nil {
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	return
 }
 
