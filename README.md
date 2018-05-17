@@ -1,5 +1,5 @@
-# lavazares [![Build Status](https://travis-ci.org/codephil-columbia/lavazares.svg?branch=master)](https://travis-ci.org/codephil-columbia/lavazares)
-
-### In order to run the app
-1. npm install 
-2. npm start (will start on port 3000)
+# Running on AWS 
+1. Rebuild the app. `go build .`
+2. Kill the previous docker container. You can find the running containers using `sudo docker ps`. Copy the container ID of the container and run `sudo docker stop <container-id>`. 
+3. Build new container. Run `sudo docker build .` This will output the ID of the newly built container, copy that since you'll need it in order to run it.
+4. Run container. `sudo docker run -d -p 8081:5000 <id-you-previously-copied>` The `-d` flag runs the container in the background, and `-p` the open port on AWS to the port that the app listens on.
