@@ -12,6 +12,8 @@ import (
 
 	"lavazares/models"
 
+	"github.com/rs/cors"
+
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
@@ -41,10 +43,8 @@ func main() {
 	chapter := router.PathPrefix("/chapter").Subrouter()
 	chapter.HandleFunc("/create", routes.HandleChapterCreate).Methods("POST")
 	chapter.HandleFunc("/completed", routes.HandleUserCompletedChapter).Methods("POST")
-
-	unit := router.PathPrefix("/unit").Subrouter()
-	unit.HandleFunc("/create", routes.HandleUnitCreate).Methods("POST")
-	unit.HandleFunc("/completed", routes.HandleUserCompletedUnit).Methods("POST")
+	chapter.HandleFunc("/getAllNames", routes.GetChapterNames).Methods("GET")
+	chapter.HandleFunc("/getAllInfo", routes.GetAllLessonsForAllChapters).Methods("GET")
 
 	router.HandleFunc("/bulk", routes.HandleBulkGet).Methods("POST")
 	router.HandleFunc("/update", routes.UpdateModel).Methods("POST")
@@ -53,5 +53,5 @@ func main() {
 	loggingRouter := handlers.LoggingHandler(os.Stdout, router)
 
 	log.Println("listening on port 5000")
-	log.Println(http.ListenAndServe(":5000", loggingRouter))
+	log.Println(http.ListenAndServe(":5000", cors.Default().Handler(loggingRouter)))
 }

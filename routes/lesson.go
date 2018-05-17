@@ -41,6 +41,30 @@ func GetNextLessonForStudent(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func GetAllLessonsForAllChapters(w http.ResponseWriter, r *http.Request) {
+	allInfo, err := models.GetAllLessonsChapters()
+	if err != nil {
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(allInfo)
+	return
+}
+
+func GetChapterNames(w http.ResponseWriter, r *http.Request) {
+	names, err := models.GetAllChapterNames()
+	if err != nil {
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	json.NewEncoder(w).Encode(names)
+	return
+}
+
 func GetLessonByID(w http.ResponseWriter, r *http.Request) {
 	req, _ := requestToBytes(r.Body)
 	body := make(map[string]string)
@@ -139,24 +163,6 @@ func HandleChapterCreate(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	return
-}
-
-func HandleUnitCreate(w http.ResponseWriter, r *http.Request) {
-	// unitRequest, err := requestToBytes(r.Body)
-	// if err != nil {
-	// 	log.Printf("Error reading unit request: %v", err)
-	// 	w.WriteHeader(http.StatusBadRequest)
-	// 	return
-	// }
-
-	// _, err = models.NewUnit(unitRequest)
-	// if err != nil {
-	// 	log.Printf("Error creating unit model: %v", err)
-	// 	w.WriteHeader(http.StatusBadRequest)
-	// 	return
-	// }
-	// w.WriteHeader(http.StatusOK)
-	// return
 }
 
 func HandleUserCompletedLesson(w http.ResponseWriter, r *http.Request) {

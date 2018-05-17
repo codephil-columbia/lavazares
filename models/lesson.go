@@ -225,13 +225,45 @@ func NextLessonForStudent(uid string) (map[string]interface{}, error) {
 
 	fmt.Println(s)
 
-	err = db.QueryRowx("select chapterimage, lessonname, chaptername from lessons L, chapters C where C.chaptername = $1 and C.chapterid = L.chapterid and L.lessonid = $2",
+	err = db.QueryRowx("select chapterimage, lessonname, chaptername, L.lessonid, C.chapterid from lessons L, chapters C where C.chaptername = $1 and C.chapterid = L.chapterid and L.lessonid = $2",
 		s.CurrentChapterName, s.CurrentLessonID).MapScan(lessonInfo)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println(lessonInfo)
-
 	return lessonInfo, nil
+}
+
+func GetAllChapterNames() (*[]string, error) {
+	chapters := []string{}
+	err := db.Select(&chapters, "select chaptername from chapters")
+	if err != nil {
+		return nil, err
+	}
+	return &chapters, nil
+}
+
+func GetAllLessonsChapters() (*[]map[string]interface{}, error) {
+	allInfo := []map[string]interface{}{}
+
+	allChapters := []Chapter{}
+	err := db.Select(&allChapters, "select chaptername, chapterid from chapters order by chaptername asc")
+	if err != nil {
+		return nil, err
+	}
+
+	for _, c := range allChapters {
+		lessons := []Lesson{}
+		err = db.Select(&lessons, "select lessonname from lessons where chapterid=$1", c.ChapterID)
+		if err != nil {
+			return nil, err
+		}
+		chapterLessons := make(map[string]interface{})
+		chapterLessons["chapterName"] = c.ChapterName
+		chapterLessons["lessons"] = lessons
+
+		allInfo = append(allInfo, chapterLessons)
+	}
+
+	return &allInfo, nil
 }
