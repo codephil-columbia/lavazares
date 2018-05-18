@@ -3,6 +3,7 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/lib/pq"
@@ -236,7 +237,7 @@ func NextLessonForStudent(uid string) (map[string]interface{}, error) {
 
 func GetAllChapterNames() (*[]string, error) {
 	chapters := []string{}
-	err := db.Select(&chapters, "select chaptername from chapters")
+	err := db.Select(&chapters, "select chaptername from chapters order by chaptername asc")
 	if err != nil {
 		return nil, err
 	}
@@ -254,10 +255,20 @@ func GetAllLessonsChapters() (*[]map[string]interface{}, error) {
 
 	for _, c := range allChapters {
 		lessons := []Lesson{}
-		err = db.Select(&lessons, "select lessonname from lessons where chapterid=$1", c.ChapterID)
+		err = db.Select(&lessons, "select lessonname from lessons where chapterid=$1 order by lessonname asc", c.ChapterID)
 		if err != nil {
 			return nil, err
 		}
+
+		// if chapter contains chapter test then
+		// since order by asc puts the chapter test before lesson,
+		// swap it so that its at the end, shift over everything
+		if strings.Contains(lessons[0].LessonName, "Chapter") {
+			l := lessons[0]
+			lessons = append(lessons, l)
+			lessons = append(lessons[:0], lessons[1:]...)
+		}
+
 		chapterLessons := make(map[string]interface{})
 		chapterLessons["chapterName"] = c.ChapterName
 		chapterLessons["lessons"] = lessons
