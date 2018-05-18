@@ -41,6 +41,37 @@ func GetNextLessonForStudent(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func GetCompletedLessonsForUser(w http.ResponseWriter, r *http.Request) {
+	req, err := requestToBytes(r.Body)
+	if err != nil {
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	body := make(map[string]string)
+	err = json.Unmarshal(req, &body)
+	if err != nil {
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	lessonsComplete, err := models.GetCompletedLessonsForUser(body["uid"])
+	if err != nil {
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err = json.NewEncoder(w).Encode(lessonsComplete)
+	if err != nil {
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	return
+}
+
 func GetAllLessonsForAllChapters(w http.ResponseWriter, r *http.Request) {
 	allInfo, err := models.GetAllLessonsChapters()
 	if err != nil {

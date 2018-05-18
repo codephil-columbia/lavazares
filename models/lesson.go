@@ -39,8 +39,10 @@ type Chapter struct {
 // LessonsComplete holds the LessonID and UserID for all of the Lessons that a
 // User has completed.
 type LessonsComplete struct {
-	LessonID string `json:"lessonID" db:"LessonID"`
-	UID      string `json:"uid" db:"UID"`
+	LessonID string  `db:"lessonid"`
+	UID      *string `db:"uid"`
+	WPM      float64 `db:"wpm"`
+	Accuracy float64 `db:"accuracy"`
 }
 
 // ChapterComplete holds the ChapterID and User ID for all of the chapters
@@ -130,30 +132,6 @@ func UserCompletedLesson(lessonComplete LessonsComplete) error {
 		VALUES(:LessonID, :UID)`,
 		lessonComplete)
 	return err
-}
-
-func GetUncompletedLessons(uid string) (*[]map[string]interface{}, error) {
-	rows, err := db.Queryx(
-		`select * from lessons L 
-		where L.lessonid not in (
-			select LC.lessonid 
-			from lessonscompleted LC 
-			where LC.uid = $1
-		)`, uid)
-
-	if err != nil {
-		return nil, err
-	}
-
-	lessons := []map[string]interface{}{}
-
-	for rows.Next() {
-		lesson := make(map[string]interface{})
-		err = rows.MapScan(lesson)
-		lessons = append(lessons, lesson)
-	}
-	fmt.Println(lessons)
-	return &lessons, nil
 }
 
 func AllLessons() (*map[string]interface{}, error) {
@@ -255,7 +233,10 @@ func GetAllLessonsChapters() (*[]map[string]interface{}, error) {
 
 	for _, c := range allChapters {
 		lessons := []Lesson{}
-		err = db.Select(&lessons, "select lessonname from lessons where chapterid=$1 order by lessonname asc", c.ChapterID)
+		err = db.Select(&lessons,
+			`select L.lessonname, L.lessonid, L.chapterid from lessons L where L.chapterid = $1 order by L.lessonname asc
+			`, c.ChapterID)
+
 		if err != nil {
 			return nil, err
 		}
@@ -277,4 +258,14 @@ func GetAllLessonsChapters() (*[]map[string]interface{}, error) {
 	}
 
 	return &allInfo, nil
+}
+
+func GetCompletedLessonsForUser(uid string) (*[]LessonsComplete, error) {
+	lc := []LessonsComplete{}
+	err := db.Select(&lc, "select lessonid, wpm, accuracy, uid from lessonscompleted where uid = $1", uid)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(lc)
+	return &lc, nil
 }

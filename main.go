@@ -36,9 +36,10 @@ func main() {
 
 	lesson := router.PathPrefix("/lesson").Subrouter()
 	lesson.HandleFunc("/create", routes.HandleLessonCreate).Methods("POST")
-	lesson.HandleFunc("/completed", routes.HandleUserCompletedLesson).Methods("POST")
+	lesson.HandleFunc("/finished", routes.HandleUserCompletedLesson).Methods("POST")
 	lesson.HandleFunc("/get", routes.GetLessonByID).Methods("POST")
 	lesson.HandleFunc("/getNext", routes.GetNextLessonForStudent).Methods("POST")
+	lesson.HandleFunc("/getCompletedLessons", routes.GetCompletedLessonsForUser).Methods("POST")
 
 	chapter := router.PathPrefix("/chapter").Subrouter()
 	chapter.HandleFunc("/create", routes.HandleChapterCreate).Methods("POST")
