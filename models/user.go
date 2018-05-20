@@ -71,9 +71,13 @@ func NewInstructor(fields []byte, u User) error {
 	return nil
 }
 
-func UsernameExists(username string) bool {
-  result := db.QueryRowx("SELECT COUNT(*) FROM users WHERE username='$1' LIMIT 1", username);
-  return result
+func UsernameExists(username string) (int, error) {
+  var valid int
+  err := db.Get(&valid, "SELECT COUNT(*) FROM users WHERE username=$1 LIMIT 1", username)
+  if err != nil {
+    return 0, err
+  }
+  return valid, err
 }
 
 func NewUser(fields []byte) (string, error) {

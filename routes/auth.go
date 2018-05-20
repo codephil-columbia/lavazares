@@ -1,6 +1,8 @@
 package routes
 
 import (
+  "encoding/json"
+  "fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -96,29 +98,27 @@ func HandleLogOut(w http.ResponseWriter, r *http.Request) {
 }
 
 func CheckUsernameAvailable(w http.ResponseWriter, r *http.Request) {
-  req, err := requestToBytes(r.body);
-  if err != nil {
-    log.Printf("%v", err)
-    w.WriteHeader(http.StatusInternalServerError)
-    return
-  }
-
+  req, _ := requestToBytes(r.Body);
   body := make(map[string]string)
-  err = json.Unmarshal(req, &body)
+  err := json.Unmarshal(req, &body)
+
+  fmt.Printf("%#v\n", body);
+  log.Printf("USERNAME: <%s>", body["username"])
+  valid, err := models.UsernameExists(body["username"])
+  if err != nil {
+    log.Printf("%v", err)
+    w.WriteHeader(http.StatusBadRequest)
+    return
+  }
+
+  output, err := json.Marshal(valid)
   if err != nil {
     log.Printf("%v", err)
     w.WriteHeader(http.StatusInternalServerError)
     return
   }
 
-  fmt.Println(body)
-
-  resp = models.UsernameExists(body["username"])
-
-  // if resp != 0 or 1, error
-
-  w.WriteHeader(http.StatusOK)
-  return resp
+  w.Write(output)
 }
 
 /*
