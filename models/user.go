@@ -71,6 +71,11 @@ func NewInstructor(fields []byte, u User) error {
 	return nil
 }
 
+func UsernameExists(username string) bool {
+  result := db.QueryRowx("SELECT COUNT(*) FROM users WHERE username='$1' LIMIT 1", username);
+  return result
+}
+
 func NewUser(fields []byte) (string, error) {
 
 	u := User{}
