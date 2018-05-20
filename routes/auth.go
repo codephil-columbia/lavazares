@@ -121,38 +121,6 @@ func CheckUsernameAvailable(w http.ResponseWriter, r *http.Request) {
   w.Write(output)
 }
 
-/*
-func AddNewUser(w http.ResponseWriter, r *http.Request) {
-  req, err := requestToBytes(r.body);
-  if err != nil {
-    log.Printf("%v", err)
-    w.WriteHeader(http.StatusInternalServerError)
-    return
-  }
-  body := make(map[string]string)
-  err = json.Unmarshal(req, &body)
-  if err != nil {
-    log.Printf("%v", err)
-    w.WriteHeader(http.StatusInternalServerError)
-    return
-  }
-
-  fmt.Println(body)
-
-  // Takes a byte array.
-  // TODO
-  _, err = models.NewUser(fields)
-  if err != nil {
-    log.Printf("%v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	return
-}
-*/
-
 func requestToBytes(body io.ReadCloser) ([]byte, error) {
 	data, err := ioutil.ReadAll(body)
 	if err != nil {
