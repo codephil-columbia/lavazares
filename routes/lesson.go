@@ -41,6 +41,69 @@ func GetNextLessonForStudent(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func GetChapterProgress(w http.ResponseWriter, r *http.Request) {
+	//GetProgressForCurrentUserLesson
+	req, err := requestToBytes(r.Body)
+	if err != nil {
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	body := make(map[string]string)
+	err = json.Unmarshal(req, &body)
+	if err != nil {
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	progress, err := models.GetProgressForCurrentUserLesson(body["uid"])
+	if err != nil {
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = json.NewEncoder(w).Encode(progress)
+	if err != nil {
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	return
+}
+
+func GetHollisticStats(w http.ResponseWriter, r *http.Request) {
+	req, err := requestToBytes(r.Body)
+	if err != nil {
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	body := make(map[string]string)
+	err = json.Unmarshal(req, &body)
+	if err != nil {
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	stats, err := models.GetOverallWPMAndAccuracy(body["uid"])
+	if err != nil {
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = json.NewEncoder(w).Encode(stats)
+	if err != nil {
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	return
+}
+
 func GetCompletedLessonsForUser(w http.ResponseWriter, r *http.Request) {
 	req, err := requestToBytes(r.Body)
 	if err != nil {

@@ -39,10 +39,11 @@ type Chapter struct {
 // LessonsComplete holds the LessonID and UserID for all of the Lessons that a
 // User has completed.
 type LessonsComplete struct {
-	LessonID string  `db:"lessonid"`
-	UID      *string `db:"uid"`
-	WPM      float64 `db:"wpm"`
-	Accuracy float64 `db:"accuracy"`
+	LessonID  string  `db:"lessonid"`
+	ChapterID string  `db:"chapterid"`
+	UID       *string `db:"uid"`
+	WPM       float64 `db:"wpm"`
+	Accuracy  float64 `db:"accuracy"`
 }
 
 // ChapterComplete holds the ChapterID and User ID for all of the chapters
@@ -262,10 +263,53 @@ func GetAllLessonsChapters() (*[]map[string]interface{}, error) {
 
 func GetCompletedLessonsForUser(uid string) (*[]LessonsComplete, error) {
 	lc := []LessonsComplete{}
-	err := db.Select(&lc, "select lessonid, wpm, accuracy, uid from lessonscompleted where uid = $1", uid)
+	err := db.Select(&lc, "select lessonid, wpm, accuracy, uid, chapterid from lessonscompleted where uid = $1", uid)
 	if err != nil {
 		return nil, err
 	}
 	fmt.Println(lc)
 	return &lc, nil
+}
+
+func GetOverallWPMAndAccuracy(uid string) (*map[string]interface{}, error) {
+	stats := make(map[string]interface{})
+
+	err := db.QueryRowx(
+		`select AVG(accuracy) as avgAccuracy, AVG(wpm) as avgWPM 
+		from lessonscompleted 
+		where uid=$1`, uid).MapScan(stats)
+
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println(stats)
+	return &stats, nil
+}
+
+func GetProgressForCurrentUserLesson(uid string) (*map[string]interface{}, error) {
+	progress := make(map[string]interface{})
+
+	err := db.QueryRowx(
+		`select count(*) as totalLessons
+		from chapters C, lessons L, students S 
+		where S.currentchaptername = C.chaptername
+		and L.chapterid = C.chapterid
+		and S.uid=$1`, uid).MapScan(progress)
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.QueryRowx(
+		`select Count(*) as compCount
+		from students S, lessonscompleted LC, chapters C
+		where S.currentchaptername = C.chaptername
+		and C.chapterid = LC.chapterid
+		and S.uid=$1`, uid).MapScan(progress)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println(progress)
+	return &progress, nil
 }
