@@ -195,7 +195,7 @@ func EditPassword(req []byte) error {
   }
 
   u.Password = hashedPassword
-  result := db.QueryRowx("UPDATE users SET password=$1 WHERE username=$2", u.Username, u.Password)
+  result := db.QueryRowx("UPDATE users SET password=$1 WHERE username=$2", u.Password, u.Username)
   if result != nil {
     return err
   }
