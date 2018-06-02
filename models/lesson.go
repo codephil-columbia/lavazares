@@ -160,15 +160,9 @@ func AllLessons() (*map[string]interface{}, error) {
 		chapters = append(chapters, chapter)
 	}
 
-	// uncompletedLessons, err := GetUncompletedLessons(forUser)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	bulkRespForUser := make(map[string]interface{})
 	bulkRespForUser["lessons"] = lessons
 	bulkRespForUser["chapters"] = chapters
-	// bulkRespForUser["uncompletedLessons"] = uncompletedLessons
 
 	fmt.Println(bulkRespForUser)
 
@@ -197,15 +191,10 @@ func NextLessonForStudent(uid string) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	//select *
-	//from lessons L, chapters C
-	//where C.chaptername = 'Chapter 0: The Basics'
-	//and C.chapterid = L.chapterid
-	//and L.lessonid = 'd3f9c2a3-1edf-42a6-a24d-3a4ad4683036'
 
 	fmt.Println(s)
 
-	err = db.QueryRowx("select chapterimage, lessonname, chaptername, L.lessonid, C.chapterid from lessons L, chapters C where C.chaptername = $1 and C.chapterid = L.chapterid and L.lessonid = $2",
+	err = db.QueryRowx("select chapterimage, lessonname, chaptername, L.lessontext, L.lessondescriptions, L.lessonid, C.chapterid from lessons L, chapters C where C.chaptername = $1 and C.chapterid = L.chapterid and L.lessonid = $2",
 		s.CurrentChapterName, s.CurrentLessonID).MapScan(lessonInfo)
 	if err != nil {
 		return nil, err
@@ -310,6 +299,5 @@ func GetProgressForCurrentUserLesson(uid string) (*map[string]interface{}, error
 		return nil, err
 	}
 
-	fmt.Println(progress)
 	return &progress, nil
 }

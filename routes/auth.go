@@ -1,8 +1,8 @@
 package routes
 
 import (
-  "encoding/json"
-  "fmt"
+	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -98,27 +98,27 @@ func HandleLogOut(w http.ResponseWriter, r *http.Request) {
 }
 
 func CheckUsernameAvailable(w http.ResponseWriter, r *http.Request) {
-  req, _ := requestToBytes(r.Body);
-  body := make(map[string]string)
-  err := json.Unmarshal(req, &body)
+	req, _ := requestToBytes(r.Body)
+	body := make(map[string]string)
+	err := json.Unmarshal(req, &body)
 
-  fmt.Printf("%#v\n", body);
-  log.Printf("USERNAME: <%s>", body["username"])
-  valid, err := models.UsernameExists(body["username"])
-  if err != nil {
-    log.Printf("%v", err)
-    w.WriteHeader(http.StatusBadRequest)
-    return
-  }
+	fmt.Printf("%#v\n", body)
+	log.Printf("USERNAME: <%s>", body["username"])
+	valid, err := models.UsernameExists(body["username"])
+	if err != nil {
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
-  output, err := json.Marshal(valid)
-  if err != nil {
-    log.Printf("%v", err)
-    w.WriteHeader(http.StatusInternalServerError)
-    return
-  }
+	output, err := json.Marshal(valid)
+	if err != nil {
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-  w.Write(output)
+	w.Write(output)
 }
 
 func requestToBytes(body io.ReadCloser) ([]byte, error) {

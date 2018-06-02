@@ -72,12 +72,12 @@ func NewInstructor(fields []byte, u User) error {
 }
 
 func UsernameExists(username string) (int, error) {
-  var valid int
-  err := db.Get(&valid, "SELECT COUNT(*) FROM users WHERE username=$1 LIMIT 1", username)
-  if err != nil {
-    return 0, err
-  }
-  return valid, err
+	var valid int
+	err := db.Get(&valid, "SELECT COUNT(*) FROM users WHERE username=$1 LIMIT 1", username)
+	if err != nil {
+		return 0, err
+	}
+	return valid, err
 }
 
 func NewUser(fields []byte) (string, error) {
@@ -136,24 +136,38 @@ func GetStudent(uid string) (*Student, error) {
 }
 
 //AutheticateUser authenticates and returns a user
-func AutheticateUser(req []byte) (*User, error) {
-	u := User{}
-	userAuthRequest := make(map[string]string)
-	json.Unmarshal(req, &userAuthRequest)
+func AutheticateUser(username, password string) (*User, error) {
+	// userdata := make(map[string]interface{})
 
-	fmt.Println(userAuthRequest)
+	// err := db.QueryRowx("SELECT * FROM users WHERE email=$1",
+	// 	userAuthRequest["email"]).StructScan(&u)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	err := db.QueryRowx("SELECT * FROM users WHERE email=$1",
-		userAuthRequest["email"]).StructScan(&u)
-	if err != nil {
-		return nil, err
-	}
+	// if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(userAuthRequest["password"])); err != nil {
+	// 	return nil, err
+	// 	import React from 'react';
+	// import Spinner from 'react-spinkit';
 
-	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(userAuthRequest["password"])); err != nil {
-		return nil, err
-	}
+	// const ShowSpinner = () => {
+	//   const spinnerStyle = {
+	//     width: '75px',
+	//     height: '75px',
+	//     marginLeft: '50%',
+	//     color: '#77BFA3',
+	//   }
+	//   return (
+	//     <div>
+	//       <Spinner name="circle" style={spinnerStyle}/>
+	//     </div>
+	//   )
+	// }
 
-	return &u, nil
+	// export default ShowSpinner;
+	// }
+
+	return nil, nil
 }
 
 //HashPassword hashes a password and returns hashed password
