@@ -17,6 +17,8 @@ type User struct {
 	UpdatedAt  time.Time  `json:"-"`
 	DeletedAt  *time.Time `json:"-"`
 	Username   string     `json:"username"`
+  Firstname  string     `json:"firstname"` 
+  Lastname   string     `json:"lastname"`
 	Email      string     `json:"email"`
 	Password   string     `json:"password"`
 	Occupation string     `json:"occupation"`
@@ -135,39 +137,25 @@ func GetStudent(uid string) (*Student, error) {
 	return &s, nil
 }
 
-//AutheticateUser authenticates and returns a user
-func AutheticateUser(username, password string) (*User, error) {
-	// userdata := make(map[string]interface{})
+//AuthenticateUser authenticates and returns a user
+func AuthenticateUser(userAuthRequest []byte) (*User, error) {
+  u, u2 := User{}, User{}
+  //userdata := make(map[string]interface{})
+	err := json.Unmarshal(userAuthRequest, &u)
+  if err != nil {
+    return nil, err
+  }
 
-	// err := db.QueryRowx("SELECT * FROM users WHERE email=$1",
-	// 	userAuthRequest["email"]).StructScan(&u)
-	// if err != nil {
-	// 	return nil, err
-	// }
+  err = db.QueryRowx("SELECT * FROM users WHERE username=$1", u.Username).StructScan(&u2)
+  if err != nil {
+    return nil, err
+  }
 
-	// if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(userAuthRequest["password"])); err != nil {
-	// 	return nil, err
-	// 	import React from 'react';
-	// import Spinner from 'react-spinkit';
+  if err := bcrypt.CompareHashAndPassword([]byte(u2.Password), []byte(u.Password)); err != nil {
+    return nil, err
+  }
 
-	// const ShowSpinner = () => {
-	//   const spinnerStyle = {
-	//     width: '75px',
-	//     height: '75px',
-	//     marginLeft: '50%',
-	//     color: '#77BFA3',
-	//   }
-	//   return (
-	//     <div>
-	//       <Spinner name="circle" style={spinnerStyle}/>
-	//     </div>
-	//   )
-	// }
-
-	// export default ShowSpinner;
-	// }
-
-	return nil, nil
+  return &u, nil
 }
 
 //HashPassword hashes a password and returns hashed password

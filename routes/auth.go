@@ -14,17 +14,17 @@ import (
 //HandleLogin logs in a user
 func HandleLogin(w http.ResponseWriter, r *http.Request) {
 
-	// req, err := requestToBytes(r.Body)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
+	req, err := requestToBytes(r.Body)
+	if err != nil {
+		fmt.Println(err)
+	}
 
-	// u, err := models.AutheticateUser(req)
-	// if err != nil {
-	// 	log.Printf("User was not found: %v", err)
-	// 	w.WriteHeader(http.StatusBadRequest)
-	// 	return
-	// }
+	_, err = models.AuthenticateUser(req)
+	if err != nil {
+		log.Printf("User was not found: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
 	// serverSession := models.NewUserSession(u.UID)
 
@@ -44,8 +44,8 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	// 	return
 	// }
 
-	// w.WriteHeader(http.StatusOK)
-	// return
+	w.WriteHeader(http.StatusOK)
+	return
 }
 
 //HandleSignup adds a user to the database
