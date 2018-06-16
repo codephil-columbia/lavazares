@@ -1,12 +1,11 @@
 package routes
 
 import (
-  "fmt"
+	"encoding/json"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
-
 	"lavazares/models"
 )
 
@@ -24,29 +23,6 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
-  /*
-	serverSession := models.NewUserSession(u.UID)
-
-	clientSession, err := store.Get(r, "session")
-	if err != nil {
-		log.Printf("Could not get client session: %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	clientSession.Values["sessionID"] = serverSession.SessionID
-	fmt.Println(serverSession.SessionID)
-	err = models.SetToSession(serverSession.SessionID, serverSession.UserID)
-	if err != nil {
-		log.Printf("Could not commit to server side session: %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	return
-	*/
 }
 
 //HandleSignup adds a user to the database
@@ -112,31 +88,32 @@ func CheckUsernameAvailable(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "%v", valid)
+  log.Printf("VALID: %v", valid);
+  js, _ := json.Marshal(valid)
+  w.WriteHeader(http.StatusOK)
+  w.Header().Set("Content-Type", "application/json")
+  w.Write(js)
 	return
-
-  /*
-  valid, err := models.ValidUsername(body["username"])
-  if err != nil {
-    log.Printf("%v", err)
-    w.WriteHeader(http.StatusBadRequest)
-    return
-  }
-
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "%v", valid)
-	*/
 }
 
 func HandleNewPassword(w http.ResponseWriter, r *http.Request) {
-  req, err := requestToBytes(r.Body);
+  req, _ := requestToBytes(r.Body)
+	body := make(map[string]string)
+	err := json.Unmarshal(req, &body)
+
+	log.Printf("USERNAME: <%s>", body["username"])
+	valid, err := models.IsUsernameValid(req)
 	if err != nil {
-		log.Printf("Error reading body: %v", err)
+		log.Printf("%v", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
+  if !valid {
+    log.Printf("VALID? %v | ERROR: %v", valid, err)
+    w.WriteHeader(http.StatusOK)
+    return
+  }
+	
 	err = models.EditPassword(req)
 	if err != nil {
     log.Printf("Password update failed: %v", err)
@@ -144,15 +121,14 @@ func HandleNewPassword(w http.ResponseWriter, r *http.Request) {
 		return
   }
 
-	w.WriteHeader(http.StatusOK)
-	return
-
 	/*_, err = models.AuthenticateUser(req)
 	if err != nil {
 		log.Printf("User was not found: %v", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}*/ // TODO might be optional after auth is finished
+	w.WriteHeader(http.StatusOK)
+	return
 }
 
 func requestToBytes(body io.ReadCloser) ([]byte, error) {

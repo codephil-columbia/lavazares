@@ -48,9 +48,11 @@ func main() {
 	chapter.HandleFunc("/completed", routes.HandleUserCompletedChapter).Methods("POST")
 	chapter.HandleFunc("/getAllNames", routes.GetChapterNames).Methods("GET")
 	chapter.HandleFunc("/getAllInfo", routes.GetAllLessonsForAllChapters).Methods("GET")
+	chapter.HandleFunc("/getChapterProgress", routes.GetChapterProgress).Methods("POST")
 
 	router.HandleFunc("/bulk", routes.HandleBulkGet).Methods("POST")
 	router.HandleFunc("/update", routes.UpdateModel).Methods("POST")
+	router.HandleFunc("/hollisticStats", routes.GetHollisticStats).Methods("POST")
 
 	// home.Use(routes.AuthMiddleware)
 	loggingRouter := handlers.LoggingHandler(os.Stdout, router)

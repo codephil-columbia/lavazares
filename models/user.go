@@ -19,6 +19,8 @@ type User struct {
   FirstName  string     `json:"firstname"`
   LastName   string     `json:"lastname"`
 	Username   string     `json:"username"`
+  Firstname  string     `json:"firstname"` 
+  Lastname   string     `json:"lastname"`
 	Email      string     `json:"email"`
 	Password   string     `json:"password"`
 	Occupation string     `json:"occupation"`
@@ -47,6 +49,7 @@ func NewStudent(fields []byte, u User) error {
 	if err != nil {
 		return err
 	}
+
 	fmt.Println(s)
 	res, err := db.Exec("INSERT INTO students(Gender, DOB, SchoolYear, CurrentLessonID, CurrentChapterName UID) VALUES($1, $2, $3, $4, $5, $6)",
 		s.Gender, s.DOB, s.SchoolYear, s.CurrentLessonID, "Chapter 0: The Basics", u.UID)
@@ -64,8 +67,7 @@ func NewInstructor(fields []byte, u User) error {
 		return err
 	}
 	fmt.Println(s)
-	res, err := db.Exec("INSERT INTO instructors(Gender, DOB, SchoolType, SchoolName, UID) VALUES($1, $2, $3, $4, $5)",
-		s.Gender, s.DOB, s.SchoolType, s.SchoolName, u.UID)
+	res, err := db.Exec("INSERT INTO instructors(Gender, DOB, SchoolType, SchoolName, UID) VALUES($1, $2, $3, $4, $5)", s.Gender, s.DOB, s.SchoolType, s.SchoolName, u.UID)
 	if res != nil {
 		return err
 	}
@@ -88,17 +90,6 @@ func IsUsernameValid(req []byte) (bool, error) {
   return !valid, err
 }
 
-/*
-func ValidUsername(username string) (bool, error) {
-  var valid bool 
-  err := db.Get(&valid, "SELECT COUNT(*) FROM users WHERE username=$1 LIMIT 1", username)
-  if err != nil {
-    return false, err
-  }
-  return !valid, err
-}
-*/
-
 func NewUser(fields []byte) (string, error) {
 
 	u := User{}
@@ -108,14 +99,11 @@ func NewUser(fields []byte) (string, error) {
 	}
 
 	u.UID = xid.New().String()
-	hashedPassword, err := hashPassword(u.Password)
+	u.Password, err := hashPassword(u.Password)
 	if err != nil {
 		return "", err
 	}
 
-	fmt.Println(u)
-
-	u.Password = hashedPassword
 	result := db.QueryRowx("INSERT INTO users(UID, Firstname, Lastname, Username, Email, Password, Occupation) VALUES($1, $2, $3, $4, $5, $6, $7)",
 		u.UID, u.FirstName, u.LastName, u.Username, u.Email, u.Password, u.Occupation).Err()
 	if result != nil {
@@ -155,24 +143,23 @@ func GetStudent(uid string) (*Student, error) {
 }
 
 //AuthenticateUser authenticates and returns a user
-func AuthenticateUser(req []byte) (*User, error) {
-	u := User{}
-	userAuthRequest := make(map[string]string)
-	json.Unmarshal(req, &userAuthRequest)
+func AuthenticateUser(userAuthRequest []byte) (*User, error) {
+  u, u2 := User{}, User{}
+  //userdata := make(map[string]interface{})
+	err := json.Unmarshal(userAuthRequest, &u)
+  if err != nil {
+    return nil, err
+  }
 
-	fmt.Println(userAuthRequest)
+  err = db.QueryRowx("SELECT * FROM users WHERE username=$1", u.Username).StructScan(&u2)
+  if err != nil {
+    return nil, err
+  }
+  if err := bcrypt.CompareHashAndPassword([]byte(u2.Password), []byte(u.Password)); err != nil {
+    return nil, err
+  }
 
-	err := db.QueryRowx("SELECT * FROM users WHERE username=$1",
-		userAuthRequest["username"]).StructScan(&u)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(userAuthRequest["password"])); err != nil {
-		return nil, err
-	}
-
-	return &u, nil
+  return &u, nil
 }
 
 // EditPassword edits (rehashes) the password of an existing user

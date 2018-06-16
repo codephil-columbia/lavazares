@@ -1,4 +1,12 @@
-# Running on AWS 
+# lavazares
+`lavazares` is the backend for [typephil](https://github.com/codephil-columbia/typephil).
+
+## Local environment setup
+1. `git pull origin master`
+2. Ensure you have all `go` dependencies. [dep](https://github.com/golang/dep) is the best way to get them.
+3. `go run main.go` starts the backend on `localhost:5000`, which is the default port that the `typephil` frontend looks for.
+
+## Running on AWS 
 1. Rebuild the app. `go build .`
 2. Kill the previous docker container. You can find the running containers using `sudo docker ps`. Copy the container ID of the container and run `sudo docker stop <container-id>`. 
 3. Build new container. Run `sudo docker build .` This will output the ID of the newly built container, copy that since you'll need it in order to run it.

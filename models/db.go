@@ -6,6 +6,8 @@ import (
 
 var db *sqlx.DB
 
+// var userSession *
+
 //InitDB initialized connected to database
 func InitDB(dataSourceName string) error {
 	var err error

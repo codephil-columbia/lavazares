@@ -8,12 +8,6 @@
   version = "v1.1.0"
 
 [[projects]]
-  name = "github.com/go-redis/redis"
-  packages = [".","internal","internal/consistenthash","internal/hashtag","internal/pool","internal/proto","internal/singleflight","internal/util"]
-  revision = "56dea1f39a5f4a64fe8c639464c966c75f226e3e"
-  version = "v6.9.1"
-
-[[projects]]
   name = "github.com/gorilla/context"
   packages = ["."]
   revision = "1ea25387ff6f684839d82767c1733ff4d4d15d0a"
@@ -32,20 +26,11 @@
   version = "v1.6.1"
 
 [[projects]]
-  name = "github.com/gorilla/securecookie"
-  packages = ["."]
-  revision = "667fe4e3466a040b780561fe9b51a83a3753eefc"
-  version = "v1.1"
-
-[[projects]]
-  name = "github.com/gorilla/sessions"
-  packages = ["."]
-  revision = "ca9ada44574153444b00d3fd9c8559e4cc95f896"
-  version = "v1.1"
-
-[[projects]]
   name = "github.com/jinzhu/gorm"
-  packages = [".","dialects/postgres"]
+  packages = [
+    ".",
+    "dialects/postgres"
+  ]
   revision = "5174cc5c242a728b435ea2be8a2f7f998e15429b"
   version = "v1.0"
 
@@ -58,13 +43,20 @@
 [[projects]]
   branch = "master"
   name = "github.com/jmoiron/sqlx"
-  packages = [".","reflectx"]
+  packages = [
+    ".",
+    "reflectx"
+  ]
   revision = "cf35089a197953c69420c8d0cecda90809764b1d"
 
 [[projects]]
   branch = "master"
   name = "github.com/lib/pq"
-  packages = [".","hstore","oid"]
+  packages = [
+    ".",
+    "hstore",
+    "oid"
+  ]
   revision = "88edab0803230a3898347e77b474f8c1820a1f20"
 
 [[projects]]
@@ -87,31 +79,26 @@
 
 [[projects]]
   name = "github.com/stretchr/testify"
-  packages = ["assert","require","suite"]
+  packages = [
+    "assert",
+    "require",
+    "suite"
+  ]
   revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
   version = "v1.2.1"
 
 [[projects]]
-  name = "github.com/rs/cors"
-  packages = ["."]
-  revision = "7af7a1e09ba336d2ea14b1ce73bf693c6837dbf6"
-  version = "v1.2"
-
-[[projects]]
-  name = "github.com/rs/cors"
-  packages = ["."]
-  revision = "7af7a1e09ba336d2ea14b1ce73bf693c6837dbf6"
-  version = "v1.2"
-
-[[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
-  packages = ["bcrypt","blowfish"]
+  packages = [
+    "bcrypt",
+    "blowfish"
+  ]
   revision = "beaf6a35706e5032ae4c3fcf342c663c069f44d2"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c370d8278501da2f1ae2fbb68ef7315654f2462371205828b682bdcc3fbe7d6b"
+  inputs-digest = "47c272d524cfe4b0528e5de2212ca941fda552a066218afe755965b6efae2871"
   solver-name = "gps-cdcl"
   solver-version = 1
