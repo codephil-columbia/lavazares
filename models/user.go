@@ -99,11 +99,14 @@ func NewUser(fields []byte) (string, error) {
 	}
 
 	u.UID = xid.New().String()
-	u.Password, err := hashPassword(u.Password)
+	hashedPassword, err := hashPassword(u.Password)
 	if err != nil {
 		return "", err
 	}
 
+	fmt.Println(u)
+
+	u.Password = hashedPassword
 	result := db.QueryRowx("INSERT INTO users(UID, Firstname, Lastname, Username, Email, Password, Occupation) VALUES($1, $2, $3, $4, $5, $6, $7)",
 		u.UID, u.FirstName, u.LastName, u.Username, u.Email, u.Password, u.Occupation).Err()
 	if result != nil {
