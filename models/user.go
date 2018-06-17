@@ -19,8 +19,6 @@ type User struct {
   FirstName  string     `json:"firstname"`
   LastName   string     `json:"lastname"`
 	Username   string     `json:"username"`
-  Firstname  string     `json:"firstname"` 
-  Lastname   string     `json:"lastname"`
 	Email      string     `json:"email"`
 	Password   string     `json:"password"`
 	Occupation string     `json:"occupation"`
