@@ -33,7 +33,8 @@ func main() {
 	auth := router.PathPrefix("/auth").Subrouter()
 	auth.HandleFunc("/login", routes.HandleLogin).Methods("POST")
 	auth.HandleFunc("/signup", routes.HandleSignup).Methods("POST")
-	auth.HandleFunc("/validUsername", routes.CheckUsernameAvailable).Methods("POST")
+	auth.HandleFunc("/usernameValid", routes.CheckUsernameAvailable).Methods("POST")
+	auth.HandleFunc("/newPassword", routes.HandleNewPassword).Methods("POST")
 
 	lesson := router.PathPrefix("/lesson").Subrouter()
 	lesson.HandleFunc("/create", routes.HandleLessonCreate).Methods("POST")

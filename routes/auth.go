@@ -2,50 +2,27 @@ package routes
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
-
 	"lavazares/models"
 )
 
 //HandleLogin logs in a user
 func HandleLogin(w http.ResponseWriter, r *http.Request) {
 
-	// req, err := requestToBytes(r.Body)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
+	req, err := requestToBytes(r.Body)
+	if err != nil {
+    log.Printf("Error: %v", err)
+  }
 
-	// u, err := models.AutheticateUser(req)
-	// if err != nil {
-	// 	log.Printf("User was not found: %v", err)
-	// 	w.WriteHeader(http.StatusBadRequest)
-	// 	return
-	// }
-
-	// serverSession := models.NewUserSession(u.UID)
-
-	// clientSession, err := store.Get(r, "session")
-	// if err != nil {
-	// 	log.Printf("Could not get client session: %v", err)
-	// 	w.WriteHeader(http.StatusBadRequest)
-	// 	return
-	// }
-
-	// clientSession.Values["sessionID"] = serverSession.SessionID
-	// fmt.Println(serverSession.SessionID)
-	// err = models.SetToSession(serverSession.SessionID, serverSession.UserID)
-	// if err != nil {
-	// 	log.Printf("Could not commit to server side session: %v", err)
-	// 	w.WriteHeader(http.StatusBadRequest)
-	// 	return
-	// }
-
-	// w.WriteHeader(http.StatusOK)
-	// return
+	_, err = models.AuthenticateUser(req)
+	if err != nil {
+		log.Printf("User was not found: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 }
 
 //HandleSignup adds a user to the database
@@ -97,28 +74,61 @@ func HandleLogOut(w http.ResponseWriter, r *http.Request) {
 	// return
 }
 
+// CheckUsernameAvailable checks whether a username has been taken already
 func CheckUsernameAvailable(w http.ResponseWriter, r *http.Request) {
-	req, _ := requestToBytes(r.Body)
+  req, err := requestToBytes(r.Body);
+	if err != nil {
+    log.Printf("Error: %v", err)
+  }
+
+  valid, err := models.IsUsernameValid(req);
+  if err != nil {
+    log.Printf("%v", err)
+    w.WriteHeader(http.StatusBadRequest)
+    return
+  }
+
+  log.Printf("VALID: %v", valid);
+  js, _ := json.Marshal(valid)
+  w.WriteHeader(http.StatusOK)
+  w.Header().Set("Content-Type", "application/json")
+  w.Write(js)
+	return
+}
+
+func HandleNewPassword(w http.ResponseWriter, r *http.Request) {
+  req, _ := requestToBytes(r.Body)
 	body := make(map[string]string)
 	err := json.Unmarshal(req, &body)
 
-	fmt.Printf("%#v\n", body)
 	log.Printf("USERNAME: <%s>", body["username"])
-	valid, err := models.UsernameExists(body["username"])
+	valid, err := models.IsUsernameValid(req)
 	if err != nil {
 		log.Printf("%v", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
-	output, err := json.Marshal(valid)
+  if !valid {
+    log.Printf("VALID? %v | ERROR: %v", valid, err)
+    w.WriteHeader(http.StatusOK)
+    return
+  }
+	
+	err = models.EditPassword(req)
 	if err != nil {
-		log.Printf("%v", err)
-		w.WriteHeader(http.StatusInternalServerError)
+    log.Printf("Password update failed: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
 		return
-	}
+  }
 
-	w.Write(output)
+	/*_, err = models.AuthenticateUser(req)
+	if err != nil {
+		log.Printf("User was not found: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}*/ // TODO might be optional after auth is finished
+	w.WriteHeader(http.StatusOK)
+	return
 }
 
 func requestToBytes(body io.ReadCloser) ([]byte, error) {

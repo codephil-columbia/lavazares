@@ -16,7 +16,11 @@ type User struct {
 	CreatedAt  time.Time  `json:"-"`
 	UpdatedAt  time.Time  `json:"-"`
 	DeletedAt  *time.Time `json:"-"`
+  FirstName  string     `json:"firstname"`
+  LastName   string     `json:"lastname"`
 	Username   string     `json:"username"`
+  Firstname  string     `json:"firstname"` 
+  Lastname   string     `json:"lastname"`
 	Email      string     `json:"email"`
 	Password   string     `json:"password"`
 	Occupation string     `json:"occupation"`
@@ -45,6 +49,7 @@ func NewStudent(fields []byte, u User) error {
 	if err != nil {
 		return err
 	}
+
 	fmt.Println(s)
 	res, err := db.Exec("INSERT INTO students(Gender, DOB, SchoolYear, CurrentLessonID, CurrentChapterName UID) VALUES($1, $2, $3, $4, $5, $6)",
 		s.Gender, s.DOB, s.SchoolYear, s.CurrentLessonID, "Chapter 0: The Basics", u.UID)
@@ -62,8 +67,7 @@ func NewInstructor(fields []byte, u User) error {
 		return err
 	}
 	fmt.Println(s)
-	res, err := db.Exec("INSERT INTO instructors(Gender, DOB, SchoolType, SchoolName, UID) VALUES($1, $2, $3, $4, $5)",
-		s.Gender, s.DOB, s.SchoolType, s.SchoolName, u.UID)
+	res, err := db.Exec("INSERT INTO instructors(Gender, DOB, SchoolType, SchoolName, UID) VALUES($1, $2, $3, $4, $5)", s.Gender, s.DOB, s.SchoolType, s.SchoolName, u.UID)
 	if res != nil {
 		return err
 	}
@@ -71,13 +75,19 @@ func NewInstructor(fields []byte, u User) error {
 	return nil
 }
 
-func UsernameExists(username string) (int, error) {
-	var valid int
-	err := db.Get(&valid, "SELECT COUNT(*) FROM users WHERE username=$1 LIMIT 1", username)
-	if err != nil {
-		return 0, err
-	}
-	return valid, err
+func IsUsernameValid(req []byte) (bool, error) {
+  var valid bool 
+	body := make(map[string]string)
+  err := json.Unmarshal(req, &body)
+  if err != nil {
+    return false, err
+  }
+
+  err = db.Get(&valid, "SELECT COUNT(*) FROM users WHERE username=$1 LIMIT 1", body["username"])
+  if err != nil {
+    return false, err
+  }
+  return !valid, err
 }
 
 func NewUser(fields []byte) (string, error) {
@@ -97,8 +107,8 @@ func NewUser(fields []byte) (string, error) {
 	fmt.Println(u)
 
 	u.Password = hashedPassword
-	result := db.QueryRowx("INSERT INTO users(UID, Username, Email, Password, Occupation) VALUES($1, $2, $3, $4, $5)",
-		u.UID, u.Username, u.Email, u.Password, u.Occupation).Err()
+	result := db.QueryRowx("INSERT INTO users(UID, Firstname, Lastname, Username, Email, Password, Occupation) VALUES($1, $2, $3, $4, $5, $6, $7)",
+		u.UID, u.FirstName, u.LastName, u.Username, u.Email, u.Password, u.Occupation).Err()
 	if result != nil {
 		return "", err
 	}
@@ -135,42 +145,55 @@ func GetStudent(uid string) (*Student, error) {
 	return &s, nil
 }
 
-//AutheticateUser authenticates and returns a user
-func AutheticateUser(username, password string) (*User, error) {
-	// userdata := make(map[string]interface{})
+//AuthenticateUser authenticates and returns a user
+func AuthenticateUser(userAuthRequest []byte) (*User, error) {
+  u, u2 := User{}, User{}
+  //userdata := make(map[string]interface{})
+	err := json.Unmarshal(userAuthRequest, &u)
+  if err != nil {
+    return nil, err
+  }
 
-	// err := db.QueryRowx("SELECT * FROM users WHERE email=$1",
-	// 	userAuthRequest["email"]).StructScan(&u)
-	// if err != nil {
-	// 	return nil, err
-	// }
+  err = db.QueryRowx("SELECT * FROM users WHERE username=$1", u.Username).StructScan(&u2)
+  if err != nil {
+    return nil, err
+  }
+  if err := bcrypt.CompareHashAndPassword([]byte(u2.Password), []byte(u.Password)); err != nil {
+    return nil, err
+  }
 
-	// if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(userAuthRequest["password"])); err != nil {
-	// 	return nil, err
-	// 	import React from 'react';
-	// import Spinner from 'react-spinkit';
-
-	// const ShowSpinner = () => {
-	//   const spinnerStyle = {
-	//     width: '75px',
-	//     height: '75px',
-	//     marginLeft: '50%',
-	//     color: '#77BFA3',
-	//   }
-	//   return (
-	//     <div>
-	//       <Spinner name="circle" style={spinnerStyle}/>
-	//     </div>
-	//   )
-	// }
-
-	// export default ShowSpinner;
-	// }
-
-	return nil, nil
+  return &u, nil
 }
 
-//HashPassword hashes a password and returns hashed password
+// EditPassword edits (rehashes) the password of an existing user
+func EditPassword(req []byte) error {
+  u := User{}
+  body := make(map[string]string)
+  json.Unmarshal(req, &body)
+
+  fmt.Println(body)
+
+  // TODO should grab username from session?
+  err := db.QueryRowx("SELECT * FROM users WHERE username=$1 LIMIT 1", body["username"]).StructScan(&u)
+  if err != nil {
+    return err
+  }
+
+  hashedPassword, err := hashPassword(body["password"])
+  if err != nil {
+    return err
+  }
+
+  u.Password = hashedPassword
+  result := db.QueryRowx("UPDATE users SET password=$1 WHERE username=$2", u.Password, u.Username)
+  if result != nil {
+    return err
+  }
+  
+  return nil
+}
+
+// HashPassword hashes a password and returns hashed password
 func hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	if err != nil {
