@@ -16,8 +16,8 @@ type User struct {
 	CreatedAt  time.Time  `json:"-"`
 	UpdatedAt  time.Time  `json:"-"`
 	DeletedAt  *time.Time `json:"-"`
-  FirstName  string     `json:"firstname"`
-  LastName   string     `json:"lastname"`
+  	FirstName  string     `json:"firstname"`
+  	LastName   string     `json:"lastname"`
 	Username   string     `json:"username"`
 	Email      string     `json:"email"`
 	Password   string     `json:"password"`
