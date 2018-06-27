@@ -16,8 +16,8 @@ type User struct {
 	CreatedAt  time.Time  `json:"-"`
 	UpdatedAt  time.Time  `json:"-"`
 	DeletedAt  *time.Time `json:"-"`
-  	FirstName  string     `json:"firstname"`
-  	LastName   string     `json:"lastname"`
+	FirstName  string     `json:"firstname"`
+	LastName   string     `json:"lastname"`
 	Username   string     `json:"username"`
 	Email      string     `json:"email"`
 	Password   string     `json:"password"`
@@ -74,18 +74,18 @@ func NewInstructor(fields []byte, u User) error {
 }
 
 func IsUsernameValid(req []byte) (bool, error) {
-  var valid bool 
+	var valid bool
 	body := make(map[string]string)
-  err := json.Unmarshal(req, &body)
-  if err != nil {
-    return false, err
-  }
+	err := json.Unmarshal(req, &body)
+	if err != nil {
+		return false, err
+	}
 
-  err = db.Get(&valid, "SELECT COUNT(*) FROM users WHERE username=$1 LIMIT 1", body["username"])
-  if err != nil {
-    return false, err
-  }
-  return !valid, err
+	err = db.Get(&valid, "SELECT COUNT(*) FROM users WHERE username=$1 LIMIT 1", body["username"])
+	if err != nil {
+		return false, err
+	}
+	return !valid, err
 }
 
 func NewUser(fields []byte) (string, error) {
@@ -145,50 +145,50 @@ func GetStudent(uid string) (*Student, error) {
 
 //AuthenticateUser authenticates and returns a user
 func AuthenticateUser(userAuthRequest []byte) (*User, error) {
-  u, u2 := User{}, User{}
-  //userdata := make(map[string]interface{})
+	u, u2 := User{}, User{}
+	//userdata := make(map[string]interface{})
 	err := json.Unmarshal(userAuthRequest, &u)
-  if err != nil {
-    return nil, err
-  }
+	if err != nil {
+		return nil, err
+	}
 
-  err = db.QueryRowx("SELECT * FROM users WHERE username=$1", u.Username).StructScan(&u2)
-  if err != nil {
-    return nil, err
-  }
-  if err := bcrypt.CompareHashAndPassword([]byte(u2.Password), []byte(u.Password)); err != nil {
-    return nil, err
-  }
+	err = db.QueryRowx("SELECT * FROM users WHERE username=$1", u.Username).StructScan(&u2)
+	if err != nil {
+		return nil, err
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(u2.Password), []byte(u.Password)); err != nil {
+		return nil, err
+	}
 
-  return &u, nil
+	return &u, nil
 }
 
 // EditPassword edits (rehashes) the password of an existing user
 func EditPassword(req []byte) error {
-  u := User{}
-  body := make(map[string]string)
-  json.Unmarshal(req, &body)
+	u := User{}
+	body := make(map[string]string)
+	json.Unmarshal(req, &body)
 
-  fmt.Println(body)
+	fmt.Println(body)
 
-  // TODO should grab username from session?
-  err := db.QueryRowx("SELECT * FROM users WHERE username=$1 LIMIT 1", body["username"]).StructScan(&u)
-  if err != nil {
-    return err
-  }
+	// TODO should grab username from session?
+	err := db.QueryRowx("SELECT * FROM users WHERE username=$1 LIMIT 1", body["username"]).StructScan(&u)
+	if err != nil {
+		return err
+	}
 
-  hashedPassword, err := hashPassword(body["password"])
-  if err != nil {
-    return err
-  }
+	hashedPassword, err := hashPassword(body["password"])
+	if err != nil {
+		return err
+	}
 
-  u.Password = hashedPassword
-  result := db.QueryRowx("UPDATE users SET password=$1 WHERE username=$2", u.Password, u.Username)
-  if result != nil {
-    return err
-  }
-  
-  return nil
+	u.Password = hashedPassword
+	result := db.QueryRowx("UPDATE users SET password=$1 WHERE username=$2", u.Password, u.Username)
+	if result != nil {
+		return err
+	}
+
+	return nil
 }
 
 // HashPassword hashes a password and returns hashed password
