@@ -13,6 +13,9 @@ import (
 var (
 	CURRENT_LESSON_ID = "d3f9c2a3-1edf-42a6-a24d-3a4ad4683036"
 	CURRENT_CHAPTER_NAME = "Chapter 0: The Basics"
+	EMPLOYED = "employed"
+	STUDENT = "student"
+	INSTRUCTOR = "instructor"
 )
 
 //User metadata that is stored in the database
@@ -33,19 +36,21 @@ type User struct {
 type Student struct {
 	Gender             string `json:"gender" db:"gender"`
 	DOB                string `json:"dob" db:"dob"`
-	SchoolYear         string `json:"schoolyear" db:"schoolyear"`
 	CurrentLessonID    string `json:"currentlessonid" db:"currentlessonid"`
 	CurrentChapterName string `db:"currentchaptername"`
 	UID                string `db:"uid"`
 }
 
+// Have to join w/ Student
 type Employed struct {
-	Gender             string `json:"gender" db:"gender"`
-	DOB                string `json:"dob" db:"dob"`
-	CurrentLessonID    string `json:"currentlessonid" db:"currentlessonid"`
-	CurrentChapterName string `db:"currentchaptername"`
-	UID                string `db:"uid"`
-	occupation string `json:"occupation" db:"occupation"`
+	Student
+	Occupation string `json:"occupation" db:"occupation"`
+}
+
+// Have to join w/ Student
+type Pupil struct {
+	Student
+	SchoolYear         string `json:"schoolyear" db:"schoolyear"`
 }
 
 type Instructor struct {
@@ -56,16 +61,14 @@ type Instructor struct {
 	UID        string `json:"uid" db:"uid"`
 }
 
-func NewStudent(fields []byte, u User) error {
+func newStudent(fields []byte, u User) error {
 	s := make(map[string]interface{})
 	err := json.Unmarshal(fields, &s)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(s["schoolyear"])
-
-	res, err := db.Exec("INSERT INTO students(Gender, DOB, SchoolYear, CurrentLessonID, CurrentChapterName, UID) VALUES($1, $2, $3, $4, $5, $6)",
+	res, err := db.Exec("INSERT INTO students(Gender, DOB, CurrentLessonID, CurrentChapterName, UID) VALUES($1, $2, $3, $4, $5, $6)",
 		s["gender"], s["dob"], s["schoolyear"], CURRENT_LESSON_ID, CURRENT_CHAPTER_NAME, u.UID)
 	fmt.Println(res, err)
 	if res != nil {
@@ -73,6 +76,34 @@ func NewStudent(fields []byte, u User) error {
 	}
 
 	return nil
+}
+
+func NewPupil(fields []byte, u User) error {
+	e := Pupil{}
+	if err := json.Unmarshal(fields, &e); err != nil {
+		return err
+	}
+
+	res, err := db.Exec("INSERT INTO pupils(schoolyear) VALUES($1)", e.SchoolYear)
+	if res != nil {
+		return err
+	}
+
+	return newStudent(fields, u)
+}
+
+func NewEmployedStudent(fields []byte, u User) error {
+	e := Employed{}
+	if err := json.Unmarshal(fields, &e); err != nil {
+		return err
+	}
+
+	res, err := db.Exec("INSERT INTO employed(occupation) VALUES($1)", e.Occupation)
+	if res != nil {
+		return err
+	}
+
+	return newStudent(fields, u)
 }
 
 func NewInstructor(fields []byte, u User) error {
@@ -88,19 +119,6 @@ func NewInstructor(fields []byte, u User) error {
 	}
 
 	return nil
-}
-
-func NewEmployedUser(fields []byte, u User) error {
-	e := Employed{}
-	if err := json.Unmarshal(fields, &e); err != nil {
-		return err
-	}
-
-	res, err := db.Exec("INSERT INTO employed(Gender, DOB, CurrentLessonID, CurrentChapterName, UID) VALUES($1, $2, $3, $4, $5)", e.Gender, e.DOB, CURRENT_LESSON_ID, CURRENT_CHAPTER_NAME, u.UID)
-	if res != nil {
-		return err
-	}
-	return err
 }
 
 func IsUsernameValid(req []byte) (bool, error) {
@@ -143,12 +161,12 @@ func NewUser(fields []byte) (string, error) {
 	}
 
 	switch u.WhichOccupation {
-	case "student":
-		NewStudent(fields, u)
-	case "instructor":
+	case STUDENT:
+		NewPupil(fields, u)
+	case INSTRUCTOR:
 		NewInstructor(fields, u)
-	case "employed":
-		NewEmployedUser(fields, u)
+	case EMPLOYED:
+		NewEmployedStudent(fields, u)
 	}
 
 	return u.UID, err
