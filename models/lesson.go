@@ -10,6 +10,7 @@ import (
 	"github.com/lib/pq"
 
 	"github.com/rs/xid"
+	"log"
 )
 
 // Lesson metadata. Maps directly to SQL definition of Lesson in db.
@@ -172,9 +173,9 @@ func NextLessonForStudent(uid string) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	err = db.QueryRowx("select chapterimage, lessonname, chaptername, L.lessontext, L.lessondescriptions, L.lessonid, C.chapterid from lessons L, chapters C where C.chaptername = $1 and C.chapterid = L.chapterid and L.lessonid = $2",
+	err = db.QueryRowx("select chapterimage, lessonname, chaptername, L.lessontext, L.lessondescriptions, L.lessonid, C.description from lessons L, chapters C where C.chaptername = $1 and C.chapterid = L.chapterid and L.lessonid = $2",
 		s.CurrentChapterName, s.CurrentLessonID).MapScan(lessonInfo)
+	log.Println(err)
 	if err != nil {
 		return nil, err
 	}

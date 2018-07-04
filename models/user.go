@@ -6,16 +6,17 @@ import (
 	"log"
 	"time"
 
-	"github.com/rs/xid"
 	"golang.org/x/crypto/bcrypt"
+	"github.com/rs/xid"
 )
 
 var (
-	CURRENT_LESSON_ID = "d3f9c2a3-1edf-42a6-a24d-3a4ad4683036"
-	CURRENT_CHAPTER_NAME = "Chapter 0: The Basics"
-	EMPLOYED = "employed"
-	STUDENT = "student"
-	INSTRUCTOR = "instructor"
+	FIRST_LESSON_ID    = "d3f9c2a3-1edf-42a6-a24d-3a4ad4683036"
+	FIRST_CHAPTER_NAME = "Chapter 0: The Basics"
+	FIRST_CHAPTER_ID   = "e6a18785-98c5-41bc-ad98-ec5d3a243d15"
+	EMPLOYED           = "employed"
+	STUDENT            = "student"
+	INSTRUCTOR         = "instructor"
 )
 
 //User metadata that is stored in the database
@@ -33,10 +34,21 @@ type User struct {
 	WhichOccupation string     `json:"whichOccupation"`
 }
 
+func (u *User) GetUserSimpleFields() (map[string]string) {
+	return map[string]string {
+		"username": u.Username,
+		"firstName": u.FirstName,
+		"lastName": u.LastName,
+		"email": u.Email,
+		"uid": u.UID,
+	}
+}
+
 type Student struct {
 	Gender             string `json:"gender" db:"gender"`
 	DOB                string `json:"dob" db:"dob"`
 	CurrentLessonID    string `json:"currentlessonid" db:"currentlessonid"`
+	CurrentChapterID string `json:"currentchapterid" db:"currentchapterid"`
 	CurrentChapterName string `db:"currentchaptername"`
 	UID                string `db:"uid"`
 }
@@ -61,21 +73,37 @@ type Instructor struct {
 	UID        string `json:"uid" db:"uid"`
 }
 
-func newStudent(fields []byte, u User) error {
-	s := make(map[string]interface{})
-	err := json.Unmarshal(fields, &s)
+func NewUser(fields []byte) (*User, error) {
+
+	u := User{}
+	err := json.Unmarshal(fields, &u)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	res, err := db.Exec("INSERT INTO students(Gender, DOB, CurrentLessonID, CurrentChapterName, UID) VALUES($1, $2, $3, $4, $5, $6)",
-		s["gender"], s["dob"], s["schoolyear"], CURRENT_LESSON_ID, CURRENT_CHAPTER_NAME, u.UID)
-	fmt.Println(res, err)
-	if res != nil {
-		return err
+	u.UID = xid.New().String()
+	hashedPassword, err := hashPassword(u.Password)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	u.Password = hashedPassword
+	result := db.QueryRowx("INSERT INTO users(UID, Firstname, Lastname, Username, Email, Password, Occupation) VALUES($1, $2, $3, $4, $5, $6, $7)",
+		u.UID, u.FirstName, u.LastName, u.Username, u.Email, u.Password, u.WhichOccupation).Err()
+	if result != nil {
+		return nil, err
+	}
+
+	switch u.WhichOccupation {
+	case INSTRUCTOR:
+		NewInstructor(fields, u)
+	case STUDENT:
+		NewPupil(fields, u)
+	case EMPLOYED:
+		NewEmployedStudent(fields, u)
+	}
+
+	return &u, err
 }
 
 func NewPupil(fields []byte, u User) error {
@@ -84,11 +112,10 @@ func NewPupil(fields []byte, u User) error {
 		return err
 	}
 
-	res, err := db.Exec("INSERT INTO pupils(schoolyear) VALUES($1)", e.SchoolYear)
-	if res != nil {
+	res, err := db.Exec("INSERT INTO pupils(schoolyear, uid) VALUES($1, $2)", e.SchoolYear, u.UID)
+	if res == nil {
 		return err
 	}
-
 	return newStudent(fields, u)
 }
 
@@ -98,12 +125,27 @@ func NewEmployedStudent(fields []byte, u User) error {
 		return err
 	}
 
-	res, err := db.Exec("INSERT INTO employed(occupation) VALUES($1)", e.Occupation)
-	if res != nil {
+	res, err := db.Exec("INSERT INTO employed(occupation, uid) VALUES($1, $2)", e.Occupation, u.UID)
+	if res == nil {
 		return err
 	}
 
 	return newStudent(fields, u)
+}
+
+func newStudent(fields []byte, u User) error {
+	s := make(map[string]interface{})
+	err := json.Unmarshal(fields, &s)
+	if err != nil {
+		return err
+	}
+	res, err := db.Exec("INSERT INTO students(Gender, DOB, CurrentLessonID, CurrentChapterName, CurrentChapterID, UID) VALUES($1, $2, $3, $4, $5, $6)",
+		s["gender"], s["dob"], FIRST_LESSON_ID, FIRST_CHAPTER_NAME, FIRST_CHAPTER_ID, u.UID)
+	if res != nil {
+		return err
+	}
+
+	return nil
 }
 
 func NewInstructor(fields []byte, u User) error {
@@ -134,42 +176,6 @@ func IsUsernameValid(req []byte) (bool, error) {
 		return false, err
 	}
 	return !valid, err
-}
-
-func NewUser(fields []byte) (string, error) {
-
-	u := User{}
-	err := json.Unmarshal(fields, &u)
-	if err != nil {
-		return "", err
-	}
-
-	u.UID = xid.New().String()
-	hashedPassword, err := hashPassword(u.Password)
-	if err != nil {
-		return "", err
-	}
-
-	fmt.Println(u)
-	fmt.Println(string(fields))
-
-	u.Password = hashedPassword
-	result := db.QueryRowx("INSERT INTO users(UID, Firstname, Lastname, Username, Email, Password, Occupation) VALUES($1, $2, $3, $4, $5, $6, $7)",
-		u.UID, u.FirstName, u.LastName, u.Username, u.Email, u.Password, u.WhichOccupation).Err()
-	if result != nil {
-		return "", err
-	}
-
-	switch u.WhichOccupation {
-	case STUDENT:
-		NewPupil(fields, u)
-	case INSTRUCTOR:
-		NewInstructor(fields, u)
-	case EMPLOYED:
-		NewEmployedStudent(fields, u)
-	}
-
-	return u.UID, err
 }
 
 func UpdateModel(modelName, field, value, identifier, identifierVal string) error {
