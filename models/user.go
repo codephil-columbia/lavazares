@@ -10,27 +10,42 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+var (
+	CURRENT_LESSON_ID = "d3f9c2a3-1edf-42a6-a24d-3a4ad4683036"
+	CURRENT_CHAPTER_NAME = "Chapter 0: The Basics"
+)
+
 //User metadata that is stored in the database
 type User struct {
-	UID        string     `json:"-"`
-	CreatedAt  time.Time  `json:"-"`
-	UpdatedAt  time.Time  `json:"-"`
-	DeletedAt  *time.Time `json:"-"`
-	FirstName  string     `json:"firstname"`
-	LastName   string     `json:"lastname"`
-	Username   string     `json:"username"`
-	Email      string     `json:"email"`
-	Password   string     `json:"password"`
-	Occupation string     `json:"occupation"`
+	UID             string     `json:"-"`
+	CreatedAt       time.Time  `json:"-"`
+	UpdatedAt       time.Time  `json:"-"`
+	DeletedAt       *time.Time `json:"-"`
+	FirstName       string     `json:"firstname"`
+	LastName        string     `json:"lastname"`
+	Username        string     `json:"username"`
+	Email           string     `json:"email"`
+	Password        string     `json:"password"`
+	Occupation      string     `json:"occupation"`
+	WhichOccupation string     `json:"whichOccupation"`
 }
 
 type Student struct {
 	Gender             string `json:"gender" db:"gender"`
 	DOB                string `json:"dob" db:"dob"`
-	SchoolYear         int    `json:"schoolyear" db:"schoolyear"`
+	SchoolYear         string `json:"schoolyear" db:"schoolyear"`
 	CurrentLessonID    string `json:"currentlessonid" db:"currentlessonid"`
 	CurrentChapterName string `db:"currentchaptername"`
 	UID                string `db:"uid"`
+}
+
+type Employed struct {
+	Gender             string `json:"gender" db:"gender"`
+	DOB                string `json:"dob" db:"dob"`
+	CurrentLessonID    string `json:"currentlessonid" db:"currentlessonid"`
+	CurrentChapterName string `db:"currentchaptername"`
+	UID                string `db:"uid"`
+	occupation string `json:"occupation" db:"occupation"`
 }
 
 type Instructor struct {
@@ -42,15 +57,17 @@ type Instructor struct {
 }
 
 func NewStudent(fields []byte, u User) error {
-	s := Student{}
+	s := make(map[string]interface{})
 	err := json.Unmarshal(fields, &s)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(s)
-	res, err := db.Exec("INSERT INTO students(Gender, DOB, SchoolYear, CurrentLessonID, CurrentChapterName UID) VALUES($1, $2, $3, $4, $5, $6)",
-		s.Gender, s.DOB, s.SchoolYear, s.CurrentLessonID, "Chapter 0: The Basics", u.UID)
+	fmt.Println(s["schoolyear"])
+
+	res, err := db.Exec("INSERT INTO students(Gender, DOB, SchoolYear, CurrentLessonID, CurrentChapterName, UID) VALUES($1, $2, $3, $4, $5, $6)",
+		s["gender"], s["dob"], s["schoolyear"], CURRENT_LESSON_ID, CURRENT_CHAPTER_NAME, u.UID)
+	fmt.Println(res, err)
 	if res != nil {
 		return err
 	}
@@ -71,6 +88,19 @@ func NewInstructor(fields []byte, u User) error {
 	}
 
 	return nil
+}
+
+func NewEmployedUser(fields []byte, u User) error {
+	e := Employed{}
+	if err := json.Unmarshal(fields, &e); err != nil {
+		return err
+	}
+
+	res, err := db.Exec("INSERT INTO employed(Gender, DOB, CurrentLessonID, CurrentChapterName, UID) VALUES($1, $2, $3, $4, $5)", e.Gender, e.DOB, CURRENT_LESSON_ID, CURRENT_CHAPTER_NAME, u.UID)
+	if res != nil {
+		return err
+	}
+	return err
 }
 
 func IsUsernameValid(req []byte) (bool, error) {
@@ -103,19 +133,22 @@ func NewUser(fields []byte) (string, error) {
 	}
 
 	fmt.Println(u)
+	fmt.Println(string(fields))
 
 	u.Password = hashedPassword
 	result := db.QueryRowx("INSERT INTO users(UID, Firstname, Lastname, Username, Email, Password, Occupation) VALUES($1, $2, $3, $4, $5, $6, $7)",
-		u.UID, u.FirstName, u.LastName, u.Username, u.Email, u.Password, u.Occupation).Err()
+		u.UID, u.FirstName, u.LastName, u.Username, u.Email, u.Password, u.WhichOccupation).Err()
 	if result != nil {
 		return "", err
 	}
 
-	switch u.Occupation {
+	switch u.WhichOccupation {
 	case "student":
 		NewStudent(fields, u)
 	case "instructor":
 		NewInstructor(fields, u)
+	case "employed":
+		NewEmployedUser(fields, u)
 	}
 
 	return u.UID, err
@@ -136,7 +169,7 @@ func UpdateModel(modelName, field, value, identifier, identifierVal string) erro
 
 func GetStudent(uid string) (*Student, error) {
 	s := Student{}
-	err := db.QueryRowx("SELECT * FROM students WHERE uid=$1", uid).StructScan(&s)
+	err := db.QueryRowx("SELECT * FROM users WHERE uid=$1", uid).StructScan(&s)
 	if err != nil {
 		return nil, err
 	}

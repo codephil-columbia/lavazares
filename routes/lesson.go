@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"lavazares/models"
-	"lavazares/tutorial"
 )
 
 func GetNextLessonForStudent(w http.ResponseWriter, r *http.Request) {
@@ -269,11 +268,14 @@ func HandleUserCompletedLesson(w http.ResponseWriter, r *http.Request) {
 	}
 
 	completedLesson := models.LessonsComplete{}
-	json.Unmarshal(lessonCompleteReq, &completedLesson)
+	err = json.Unmarshal(lessonCompleteReq, &completedLesson)
+	if err != nil {
+		log.Printf("Could not convert lesson request to struct: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
-	tutorialManager := tutorial.DefaultTutorialManager{}
-
-	err = tutorialManager.AddCompletedTutorial(completedLesson)
+	err = models.UserCompletedLesson(completedLesson)
 	if err != nil {
 		log.Printf("Could not add completed lesson: %v", err)
 		w.WriteHeader(http.StatusBadRequest)

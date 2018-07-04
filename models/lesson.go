@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -128,11 +129,21 @@ func UserCompletedChapter(chapterComplete ChapterComplete) error {
 // UserCompletedLesson takes UID of User and LessonID of the Lesson that
 // they completed and inserts the pair into DB.
 func UserCompletedLesson(lessonComplete LessonsComplete) error {
+	fmt.Println(hasCompletedLesson(lessonComplete))
+	if hasCompletedLesson(lessonComplete) {
+		_, err := db.Query("UPDATE LessonsCompleted SET wpm=$1, accuracy=$2 WHERE uid=$3 and lessonid=$4", lessonComplete.WPM, lessonComplete.Accuracy, lessonComplete.UID, lessonComplete.LessonID)
+		return err
+	}
 	_, err := db.NamedQuery(
-		`INSERT INTO LessonsCompleted(LessonID, UID)
-		VALUES(:LessonID, :UID)`,
+		`INSERT INTO LessonsCompleted(LessonID, UID, WPM, Accuracy, ChapterID)
+		VALUES(:lessonid, :uid, :wpm, :accuracy, :chapterid)`,
 		lessonComplete)
 	return err
+}
+
+func hasCompletedLesson(lessonComplete LessonsComplete) bool {
+	err := db.QueryRow("select count(1) from LessonsCompleted where lessonid=$1 and uid=$2", lessonComplete.LessonID, lessonComplete.UID).Scan()
+	return (err != sql.ErrNoRows)
 }
 
 func AllLessons() (*map[string]interface{}, error) {
@@ -186,13 +197,10 @@ func GetLesson(lessonID string) (*Lesson, error) {
 
 func NextLessonForStudent(uid string) (map[string]interface{}, error) {
 	lessonInfo := make(map[string]interface{})
-
 	s, err := GetStudent(uid)
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println(s)
 
 	err = db.QueryRowx("select chapterimage, lessonname, chaptername, L.lessontext, L.lessondescriptions, L.lessonid, C.chapterid from lessons L, chapters C where C.chaptername = $1 and C.chapterid = L.chapterid and L.lessonid = $2",
 		s.CurrentChapterName, s.CurrentLessonID).MapScan(lessonInfo)
