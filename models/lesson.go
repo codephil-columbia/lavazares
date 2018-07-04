@@ -66,35 +66,6 @@ type NextLessonReq struct {
 	ChapterID string `json:"chapterID"`
 }
 
-// NewLesson creates a new Lesson from a lessonRequest and inserts it into DB.
-// We don't have to worry about populating any time fields since Postgres will fill
-// with current time if we leave it empty.
-// func NewLesson(lessonRequest []byte) (*Lesson, error) {
-// 	lesson := Lesson{}
-// 	err := json.Unmarshal(lessonRequest, &lesson)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	lesson.LessonID = xid.New().String()
-// 	lesson.DeletedAt = nil
-
-// 	// Can't user NamedQuery because sqlx does not support Arrays :(, instead convert to postgres array
-// 	// obj (note: does not support nested Arrays) and insert manually
-// 	_, err = db.Queryx(
-// 		`INSERT INTO Lessons
-// 		(LessonID, LessonName, LessonContent, MinimumScoreToPass, ChapterID)
-// 		VALUES($1, $2, $3, $4, $5)`,
-// 		lesson.LessonID, lesson.LessonName, pq.Array(lesson.LessonContent),
-// 		lesson.MinimumScoreToPass, lesson.ChapterID)
-
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return &lesson, nil
-// }
-
 // NewChapter creates a Chapter from a chapterReq and inserts it into DB.
 func NewChapter(chapterReq []byte) (*Chapter, error) {
 	chapter := Chapter{}
