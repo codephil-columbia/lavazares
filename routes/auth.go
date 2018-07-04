@@ -36,7 +36,7 @@ func HandleSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = models.NewUser(data)
+	newUser, err := models.NewUser(data)
 
 	if err != nil {
 		log.Printf("Error creating user: %v", err)
@@ -44,7 +44,7 @@ func HandleSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(newUser.GetUserSimpleFields())
 	return
 }
 

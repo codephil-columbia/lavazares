@@ -26,6 +26,7 @@ func GetNextLessonForStudent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	nextLessonInfo, err := models.NextLessonForStudent(body["uid"])
+	fmt.Println(nextLessonInfo)
 	if err != nil {
 		log.Printf("%v", err)
 		w.WriteHeader(http.StatusBadRequest)
