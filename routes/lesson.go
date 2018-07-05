@@ -43,7 +43,6 @@ func GetNextLessonForStudent(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetChapterProgress(w http.ResponseWriter, r *http.Request) {
-	//GetProgressForCurrentUserLesson
 	req, err := requestToBytes(r.Body)
 	if err != nil {
 		log.Printf("%v", err)
@@ -95,7 +94,7 @@ func GetHollisticStats(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
+	fmt.Println(stats)
 	err = json.NewEncoder(w).Encode(stats)
 	if err != nil {
 		log.Printf("%v", err)

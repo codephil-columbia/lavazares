@@ -17,12 +17,14 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
     log.Printf("Error: %v", err)
   }
 
-	_, err = models.AuthenticateUser(req)
+	user, err := models.AuthenticateUser(req)
 	if err != nil {
 		log.Printf("User was not found: %v", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
+	json.NewEncoder(w).Encode(user.GetUserSimpleFields())
 }
 
 //HandleSignup adds a user to the database
