@@ -173,7 +173,7 @@ func NextLessonForStudent(uid string) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = db.QueryRowx("select chapterimage, lessonname, chaptername, L.lessontext, L.lessondescriptions, L.lessonid, C.description from lessons L, chapters C where C.chaptername = $1 and C.chapterid = L.chapterid and L.lessonid = $2",
+	err = db.QueryRowx("select chapterimage, lessonname, chaptername, L.lessontext, L.lessondescriptions, L.lessonid, C.chapterdescription from lessons L, chapters C where C.chaptername = $1 and C.chapterid = L.chapterid and L.lessonid = $2",
 		s.CurrentChapterName, s.CurrentLessonID).MapScan(lessonInfo)
 	log.Println(err)
 	if err != nil {
@@ -248,12 +248,15 @@ func GetOverallWPMAndAccuracy(uid string) (*map[string]interface{}, error) {
 		from lessonscompleted 
 		where uid=$1`, uid).MapScan(stats)
 
-	if err != nil {
-		return nil, err
+	// In the case of a new User
+	if stats["avgAccuracy"] == nil || stats["avgWPM"] == nil {
+		stats = map[string]interface{}{
+			"avgAccuracy": "0",
+			"avgWPM": "0",
+		}
 	}
 
-	fmt.Println(stats)
-	return &stats, nil
+	return &stats, err
 }
 
 func GetProgressForCurrentUserLesson(uid string) (*map[string]interface{}, error) {
@@ -273,8 +276,10 @@ func GetProgressForCurrentUserLesson(uid string) (*map[string]interface{}, error
 		`select Count(*) as compCount
 		from students S, lessonscompleted LC, chapters C
 		where S.currentchaptername = C.chaptername
+		and S.currentchaptername != C.chaptername
 		and C.chapterid = LC.chapterid
 		and S.uid=$1`, uid).MapScan(progress)
+
 	if err != nil {
 		return nil, err
 	}

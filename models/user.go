@@ -193,7 +193,7 @@ func UpdateModel(modelName, field, value, identifier, identifierVal string) erro
 
 func GetStudent(uid string) (*Student, error) {
 	s := Student{}
-	err := db.QueryRowx("SELECT * FROM users WHERE uid=$1", uid).StructScan(&s)
+	err := db.QueryRowx("SELECT * FROM students WHERE uid=$1", uid).StructScan(&s)
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +203,6 @@ func GetStudent(uid string) (*Student, error) {
 //AuthenticateUser authenticates and returns a user
 func AuthenticateUser(userAuthRequest []byte) (*User, error) {
 	u, u2 := User{}, User{}
-	//userdata := make(map[string]interface{})
 	err := json.Unmarshal(userAuthRequest, &u)
 	if err != nil {
 		return nil, err
@@ -217,7 +216,7 @@ func AuthenticateUser(userAuthRequest []byte) (*User, error) {
 		return nil, err
 	}
 
-	return &u, nil
+	return &u2, nil
 }
 
 // EditPassword edits (rehashes) the password of an existing user
