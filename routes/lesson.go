@@ -42,6 +42,37 @@ func GetNextLessonForStudent(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func logErrAndReturn(err error, w http.ResponseWriter) {
+	log.Printf("%v", err)
+	w.WriteHeader(http.StatusBadRequest)
+	return
+}
+
+func GetCurrentLessonForStudent(w http.ResponseWriter, r *http.Request) {
+	req, err := requestToBytes(r.Body)
+	if err != nil {
+		logErrAndReturn(err, w)
+	}
+
+	body := make(map[string]string)
+	err = json.Unmarshal(req, &body)
+	if err != nil {
+		logErrAndReturn(err, w)
+	}
+
+	currentLesson, err := models.GetCurrent(body["uid"])
+	if err != nil {
+		logErrAndReturn(err, w)
+	}
+
+	err = json.NewEncoder(w).Encode(currentLesson)
+	if err != nil {
+		logErrAndReturn(err, w)
+	}
+	return
+
+}
+
 func GetChapterProgress(w http.ResponseWriter, r *http.Request) {
 	req, err := requestToBytes(r.Body)
 	if err != nil {
@@ -237,8 +268,6 @@ func HandleLessonCreate(w http.ResponseWriter, r *http.Request) {
 	// return
 }
 
-//connStr = "user=codephil dbname=lavazaresdb password=codephil! port=5432 host=lavazares-db1.cnodp99ehkll.us-west-2.rds.amazonaws.com sslmode=disable"
-
 func HandleChapterCreate(w http.ResponseWriter, r *http.Request) {
 	chapterRequest, err := requestToBytes(r.Body)
 	if err != nil {
@@ -294,7 +323,7 @@ func HandleUserCompletedChapter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	completedChapter := models.ChapterComplete{}
+	completedChapter := models.ChaptersComplete{}
 	json.Unmarshal(chapterCompleteReq, &completedChapter)
 
 	err = models.UserCompletedChapter(completedChapter)
@@ -359,4 +388,25 @@ func HandleBulkGet(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+}
+
+func Test(w http.ResponseWriter, r *http.Request) {
+	req, err := requestToBytes(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		logErrAndReturn(err, w)
+	}
+
+	t := models.LessonsComplete{}
+	err = json.Unmarshal(req, &t)
+	if err != nil {
+		logErrAndReturn(err, w)
+	}
+
+	err = models.UserDidFinishLesson(t)
+	if err != nil {
+		logErrAndReturn(err, w)
+	}
+
+	w.WriteHeader(200)
 }
