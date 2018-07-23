@@ -328,12 +328,12 @@ func GetProgressForCurrentUserLesson(uid string) (*map[string]interface{}, error
 	return &progress, nil
 }
 
-func haCompletedLesson(tx *sqlx.Tx, lessonid, uid string) bool {
+func hasCompletedLessonInTx(tx *sqlx.Tx, lessonid, uid string) bool {
 	err := tx.QueryRow("select count(1) from LessonsCompleted where lessonid=$1 and uid=$2", lessonid, uid).Scan()
 	return err == sql.ErrNoRows
 }
 
-func hasCompletedChapted(tx *sqlx.Tx, chapterid, uid string) bool {
+func hasCompletedChapter(tx *sqlx.Tx, chapterid, uid string) bool {
 	var count string
 	err := tx.QueryRow("select count(1) from ChaptersCompleted where chapterid=$1 and uid=$2", chapterid, uid).Scan(&count)
 	return err == sql.ErrNoRows
@@ -346,7 +346,7 @@ func hasCompletedChapted(tx *sqlx.Tx, chapterid, uid string) bool {
 	}
 
 	// Add lesson to lesson completed list, or update the previous record if has already completed lesson
-	if haCompletedLesson(tx, lc.LessonID, *lc.UID) {
+	if hasCompletedLessonInTx(tx, lc.LessonID, *lc.UID) {
 		_, err = tx.Exec(`
 			UPDATE LessonsCompleted 
 			SET wpm=$1, accuracy=$2 
@@ -384,7 +384,7 @@ func hasCompletedChapted(tx *sqlx.Tx, chapterid, uid string) bool {
 		lc.ChapterID, lc.UID).MapScan(nextLesson)
 	if err == sql.ErrNoRows {
 		userDidCompleteChapter = true
-		if !hasCompletedChapted(tx, lc.ChapterID, *lc.UID) {
+		if !hasCompletedChapter(tx, lc.ChapterID, *lc.UID) {
 			_, err := tx.Exec(`INSERT INTO ChaptersCompleted(chapterid, uid) VALUES($1, $2)`, lc.ChapterID, lc.UID)
 			if err != nil {
 				tx.Rollback()
