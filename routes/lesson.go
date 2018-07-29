@@ -390,7 +390,7 @@ func HandleBulkGet(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func Test(w http.ResponseWriter, r *http.Request) {
+func HandleLessonComplete(w http.ResponseWriter, r *http.Request) {
 	req, err := requestToBytes(r.Body)
 	defer r.Body.Close()
 	if err != nil {
