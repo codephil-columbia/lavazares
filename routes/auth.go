@@ -18,6 +18,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
   }
 
   data, err := models.AuthenticateUser(req)
+	//user, err := models.AuthenticateUser(req)
 	if err != nil {
 		log.Printf("User was not found: %v", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -29,6 +30,11 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
   w.Header().Set("Content-Type", "application/json")
   w.Write(res)
 	return
+
+  // TODO I'm confident your solution works
+  // but just for speed I'm hiding it right now
+  // thanks again for taking care of this
+	//json.NewEncoder(w).Encode(user.GetUserSimpleFields())
 }
 
 //HandleSignup adds a user to the database
@@ -42,7 +48,7 @@ func HandleSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = models.NewUser(data)
+	newUser, err := models.NewUser(data)
 
 	if err != nil {
 		log.Printf("Error creating user: %v", err)
@@ -50,7 +56,7 @@ func HandleSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(newUser.GetUserSimpleFields())
 	return
 }
 
