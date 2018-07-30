@@ -21,7 +21,7 @@ var (
 
 //User metadata that is stored in the database
 type User struct {
-	UID             string     `json:"-"`
+	UID             string     `json:"uid"`
 	CreatedAt       time.Time  `json:"-"`
 	UpdatedAt       time.Time  `json:"-"`
 	DeletedAt       *time.Time `json:"-"`
