@@ -330,7 +330,7 @@ func GetProgressForCurrentUserLesson(uid string) (*map[string]interface{}, error
 
 func hasCompletedLessonInTx(tx *sqlx.Tx, lessonid, uid string) bool {
 	err := tx.QueryRow("select count(1) from LessonsCompleted where lessonid=$1 and uid=$2", lessonid, uid).Scan()
-	return !(err == sql.ErrNoRows)
+	return err == sql.ErrNoRows
 }
 
 func hasCompletedChapter(tx *sqlx.Tx, chapterid, uid string) bool {
