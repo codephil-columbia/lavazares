@@ -330,7 +330,7 @@ func GetProgressForCurrentUserLesson(uid string) (*map[string]interface{}, error
 
 func hasCompletedLessonInTx(tx *sqlx.Tx, lessonid, uid string) bool {
 	err := tx.QueryRow("select count(1) from LessonsCompleted where lessonid=$1 and uid=$2", lessonid, uid).Scan()
-	return err == sql.ErrNoRows
+	return !(err == sql.ErrNoRows)
 }
 
 func hasCompletedChapter(tx *sqlx.Tx, chapterid, uid string) bool {
@@ -351,7 +351,7 @@ func hasCompletedChapter(tx *sqlx.Tx, chapterid, uid string) bool {
 			UPDATE LessonsCompleted 
 			SET wpm=$1, accuracy=$2 
 			WHERE uid=$3 and lessonid=$4`,
-			lc.WPM, lc.Accuracy, lc.LessonID)
+			lc.WPM, lc.Accuracy, lc.UID, lc.LessonID)
 		if err != nil {
 			tx.Rollback()
 			return err
