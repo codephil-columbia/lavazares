@@ -165,12 +165,9 @@ func AllLessons() (*map[string]interface{}, error) {
 
 func GetLesson(lessonID string) (*Lesson, error) {
 	lesson := Lesson{}
-	rows, err := db.Queryx("SELECT * FROM Lessons where lessonid=$1", lessonID)
+	err := db.QueryRowx("SELECT lessontext, lessonname, lessondescriptions, lessonid, chapterid, lessondescriptions FROM Lessons where lessonid=$1", lessonID).StructScan(&lesson)
 	if err != nil {
 		return nil, err
-	}
-	for rows.Next() {
-		rows.StructScan(&lesson)
 	}
 
 	fmt.Println(lesson)
@@ -328,16 +325,22 @@ func GetProgressForCurrentUserLesson(uid string) (*map[string]interface{}, error
 	return &progress, nil
 }
 
-func hasCompletedLessonInTx(tx *sqlx.Tx, lessonid, uid string) bool {
+func hasCompletedLessonInTx(tx *sqlx.Tx, lessonid, uid string) (bool, error) {
 	var count int
-	err := tx.QueryRow("select count(1) from LessonsCompleted where lessonid=$1 and uid=$2", lessonid, uid).Scan(&count)
-	return !(err == sql.ErrNoRows)
+	err := tx.QueryRow("select count(*) from LessonsCompleted where lessonid=$1 and uid=$2", lessonid, uid).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return !(count == 0), nil
 }
 
-func hasCompletedChapter(tx *sqlx.Tx, chapterid, uid string) bool {
-	var count string
-	err := tx.QueryRow("select count(1) from ChaptersCompleted where chapterid=$1 and uid=$2", chapterid, uid).Scan(&count)
-	return !(err == sql.ErrNoRows)
+func hasCompletedChapter(tx *sqlx.Tx, chapterid, uid string) (bool, error) {
+	var count int
+	err := tx.QueryRow("select count(*) from ChaptersCompleted where chapterid=$1 and uid=$2", chapterid, uid).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return !(count == 0), nil
 }
 
  func UserDidFinishLesson(lc LessonsComplete) error {
@@ -347,7 +350,12 @@ func hasCompletedChapter(tx *sqlx.Tx, chapterid, uid string) bool {
 	}
 
 	// Add lesson to lesson completed list, or update the previous record if has already completed lesson
-	if hasCompletedLessonInTx(tx, lc.LessonID, *lc.UID) {
+	hcl, err := hasCompletedLessonInTx(tx, lc.LessonID, *lc.UID)
+	if err != nil {
+		return nil
+	}
+
+	if hcl {
 		_, err = tx.Exec(`
 			UPDATE LessonsCompleted 
 			SET wpm=$1, accuracy=$2 
@@ -368,6 +376,15 @@ func hasCompletedChapter(tx *sqlx.Tx, chapterid, uid string) bool {
 		}
 	}
 
+	if err = tx.Commit(); err != nil {
+		return nil
+	}
+
+	tx, err = db.Beginx()
+	if err != nil {
+		return err
+	}
+
 	nextLesson := make(map[string]interface{})
 	userDidCompleteChapter := false
 
@@ -385,7 +402,11 @@ func hasCompletedChapter(tx *sqlx.Tx, chapterid, uid string) bool {
 		lc.ChapterID, lc.UID).MapScan(nextLesson)
 	if err == sql.ErrNoRows {
 		userDidCompleteChapter = true
-		if !hasCompletedChapter(tx, lc.ChapterID, *lc.UID) {
+		hcc, err := hasCompletedChapter(tx, lc.ChapterID, *lc.UID)
+		if err != nil {
+			return nil
+		}
+		if !hcc {
 			_, err := tx.Exec(`INSERT INTO ChaptersCompleted(chapterid, uid) VALUES($1, $2)`, lc.ChapterID, lc.UID)
 			if err != nil {
 				tx.Rollback()
@@ -419,16 +440,18 @@ func hasCompletedChapter(tx *sqlx.Tx, chapterid, uid string) bool {
 			return err
 		}
 	} else {
-		_, err = tx.Exec(`UPDATE Students SET currentlessonid=$1`, nextLesson["lessonid"])
-		if err != nil {
-			tx.Rollback()
-			return err
+		if !hcl {
+			_, err = tx.Exec(`UPDATE Students SET currentlessonid=$1`, nextLesson["lessonid"])
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
 		}
 	}
 	return tx.Commit()
 }
 
-func GetCurrent(uid string ) (*TutorialLessonResponse, error) {
+func GetCurrent(uid string) (*TutorialLessonResponse, error) {
 	var resp TutorialLessonResponse
 	err := db.QueryRowx(`SELECT chapterimage, lessonname, chaptername, L.lessontext, L.lessondescriptions, L.lessonid, C.chapterdescription, C.chapterid FROM Lessons L, Students S, Chapters C WHERE S.uid=$1 AND S.currentlessonid = L.lessonid and L.chapterid = C.chapterid LIMIT 1`, uid).StructScan(&resp)
 	if err != nil {

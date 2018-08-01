@@ -191,13 +191,20 @@ func GetChapterNames(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetLessonByID(w http.ResponseWriter, r *http.Request) {
-	req, _ := requestToBytes(r.Body)
+	req, err := requestToBytes(r.Body)
+	if err != nil {
+		http.Error(w, "Error reading body", 400)
+		return
+	}
+
 	body := make(map[string]string)
-	json.Unmarshal(req, &body)
+	err = json.Unmarshal(req, &body)
+	if err != nil {
+		http.Error(w, "Error reading body contents", 400)
+		return
+	}
 
-	fmt.Println(body["lessonid"])
-
-	l, err := models.GetLesson(body["lessonid"])
+	l, err := models.GetLesson(body["lessonID"])
 	if err != nil {
 		log.Printf("%v", err)
 		w.WriteHeader(http.StatusBadRequest)
