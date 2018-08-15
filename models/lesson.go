@@ -289,7 +289,7 @@ func GetOverallWPMAndAccuracy(uid string) (*map[string]interface{}, error) {
     }
 
 	err := db.QueryRowx(
-		`select AVG(accuracy) as avgaccuracy, AVG(wpm) as avgwpm 
+		`select AVG(NULLIF(accuracy,0)) as avgaccuracy, AVG(NULLIF(wpm,0)) as avgwpm 
 		from lessonscompleted 
 		where uid=$1`, uid).MapScan(stats)
 
