@@ -283,11 +283,21 @@ func GetCompletedLessonsForUser(uid string) (*[]LessonsComplete, error) {
 
 func GetOverallWPMAndAccuracy(uid string) (*map[string]interface{}, error) {
 	stats := make(map[string]interface{})
+  aliases := map[string]string{
+      "avgaccuracy": "avgAccuracy",
+      "avgwpm": "avgWPM",
+    }
 
 	err := db.QueryRowx(
-		`select AVG(accuracy) as avgAccuracy, AVG(wpm) as avgWPM 
+		`select AVG(accuracy) as avgaccuracy, AVG(wpm) as avgwpm 
 		from lessonscompleted 
 		where uid=$1`, uid).MapScan(stats)
+
+  // UI expects case-sensitive keys
+  for k, v := range aliases {
+    stats[v] = stats[k]
+    delete(stats, k)
+  }
 
 	// In the case of a new User
 	if stats["avgAccuracy"] == nil || stats["avgWPM"] == nil {
