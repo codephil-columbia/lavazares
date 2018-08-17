@@ -27,7 +27,7 @@ type Lesson struct {
 	LessonDescriptions pq.StringArray `db:"lessondescriptions"`
 	MinimumScoreToPass pq.Int64Array  `db:"minimumscoretopass"`
 	ChapterID          string         `db:"chapterid"`
-	Image              string         `db:"image"`
+	Image              pq.StringArray `db:"image"`
 }
 
 // Chapter metadata. Maps directly to SQL definition in DB.
@@ -76,6 +76,7 @@ type TutorialLessonResponse struct {
 	LessonId           string         `json:"lessonid"`
 	LessonName         string         `json:"lessonname"`
 	LessonText         pq.StringArray `json:"lessontext"`
+	Image              pq.StringArray `json:"lessonimages"`
 }
 
 // NewChapter creates a Chapter from a chapterReq and inserts it into DB.
@@ -165,12 +166,10 @@ func AllLessons() (*map[string]interface{}, error) {
 
 func GetLesson(lessonID string) (*Lesson, error) {
 	lesson := Lesson{}
-	err := db.QueryRowx("SELECT lessontext, lessonname, lessondescriptions, lessonid, chapterid, lessondescriptions FROM Lessons where lessonid=$1", lessonID).StructScan(&lesson)
+	err := db.QueryRowx("SELECT lessontext, lessonname, lessondescriptions, image, lessonid, chapterid, lessondescriptions FROM Lessons where lessonid=$1", lessonID).StructScan(&lesson)
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println(lesson)
 
 	return &lesson, nil
 }
@@ -209,7 +208,7 @@ func GetCurrentLessonForStudent(uid string) (*TutorialLessonResponse, error) {
 
 	var resp TutorialLessonResponse
 	if err := db.QueryRowx(`
-		select chapterimage, lessonname, chaptername, L.lessontext, L.lessondescriptions, L.lessonid, C.chapterdescription, C.chapterid
+		select chapterimage, lessonname, chaptername, image, L.lessontext, L.lessondescriptions, L.lessonid, C.chapterdescription, C.chapterid
 		from lessons l, chapters c 
 		where l.chapterid = c.chapterid and l.lessonid not in (
 			select lessonid
@@ -280,21 +279,21 @@ func GetCompletedLessonsForUser(uid string) (*[]LessonsComplete, error) {
 
 func GetOverallWPMAndAccuracy(uid string) (*map[string]interface{}, error) {
 	stats := make(map[string]interface{})
-  aliases := map[string]string{
-      "avgaccuracy": "avgAccuracy",
-      "avgwpm": "avgWPM",
-    }
+	aliases := map[string]string{
+		"avgaccuracy": "avgAccuracy",
+		"avgwpm":      "avgWPM",
+	}
 
 	err := db.QueryRowx(
 		`select AVG(NULLIF(accuracy,0)) as avgaccuracy, AVG(NULLIF(wpm,0)) as avgwpm 
 		from lessonscompleted 
 		where uid=$1`, uid).MapScan(stats)
 
-  // UI expects case-sensitive keys
-  for k, v := range aliases {
-    stats[v] = stats[k]
-    delete(stats, k)
-  }
+	// UI expects case-sensitive keys
+	for k, v := range aliases {
+		stats[v] = stats[k]
+		delete(stats, k)
+	}
 
 	// In the case of a new User
 	if stats["avgAccuracy"] == nil || stats["avgWPM"] == nil {
@@ -465,33 +464,9 @@ func UserDidFinishLesson(lc LessonsComplete) error {
 
 func GetCurrent(uid string) (*TutorialLessonResponse, error) {
 	var resp TutorialLessonResponse
-	err := db.QueryRowx(`SELECT chapterimage, lessonname, chaptername, L.lessontext, L.lessondescriptions, L.lessonid, C.chapterdescription, C.chapterid FROM Lessons L, Students S, Chapters C WHERE S.uid=$1 AND S.currentlessonid = L.lessonid and L.chapterid = C.chapterid LIMIT 1`, uid).StructScan(&resp)
+	err := db.QueryRowx(`SELECT chapterimage, lessonname, image, chaptername, L.lessontext, L.lessondescriptions, L.lessonid, C.chapterdescription, C.chapterid FROM Lessons L, Students S, Chapters C WHERE S.uid=$1 AND S.currentlessonid = L.lessonid and L.chapterid = C.chapterid LIMIT 1`, uid).StructScan(&resp)
 	if err != nil {
 		return nil, err
 	}
 	return &resp, err
 }
-<<<<<<< HEAD
-
-// Returns next sequential lesson given lesson id
-// This is different from other lesson retrieval functions
-// since it is not dependent on user.
-// func GetNextSequentialLesson(lessonId, chaperId string) (*TutorialLessonResponse, error) {
-// 	lessons := make(map[string]interface{})
-// 	rows, err := db.Queryx("SELECT lessonname, lessonid from Lessons where chapterid=$1", lessonId)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	defer rows.Close()
-// 	for rows.Next() {
-// 		var lessonname, lessonid string
-// 		err = rows.Scan(&lessonname, lessonid)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-
-// 	}
-// 	return nil, nil
-// }
-=======
->>>>>>> 633bf6bb13ff9996b44e205dcf83470acdb3b426
