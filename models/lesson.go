@@ -280,11 +280,21 @@ func GetCompletedLessonsForUser(uid string) (*[]LessonsComplete, error) {
 
 func GetOverallWPMAndAccuracy(uid string) (*map[string]interface{}, error) {
 	stats := make(map[string]interface{})
+  aliases := map[string]string{
+      "avgaccuracy": "avgAccuracy",
+      "avgwpm": "avgWPM",
+    }
 
 	err := db.QueryRowx(
-		`select AVG(accuracy) as avgAccuracy, AVG(wpm) as avgWPM 
+		`select AVG(NULLIF(accuracy,0)) as avgaccuracy, AVG(NULLIF(wpm,0)) as avgwpm 
 		from lessonscompleted 
 		where uid=$1`, uid).MapScan(stats)
+
+  // UI expects case-sensitive keys
+  for k, v := range aliases {
+    stats[v] = stats[k]
+    delete(stats, k)
+  }
 
 	// In the case of a new User
 	if stats["avgAccuracy"] == nil || stats["avgWPM"] == nil {
@@ -461,6 +471,7 @@ func GetCurrent(uid string) (*TutorialLessonResponse, error) {
 	}
 	return &resp, err
 }
+<<<<<<< HEAD
 
 // Returns next sequential lesson given lesson id
 // This is different from other lesson retrieval functions
@@ -482,3 +493,5 @@ func GetCurrent(uid string) (*TutorialLessonResponse, error) {
 // 	}
 // 	return nil, nil
 // }
+=======
+>>>>>>> 633bf6bb13ff9996b44e205dcf83470acdb3b426
