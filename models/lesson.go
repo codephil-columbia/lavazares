@@ -9,8 +9,8 @@ import (
 
 	"github.com/lib/pq"
 
-	"github.com/rs/xid"
 	"github.com/jmoiron/sqlx"
+	"github.com/rs/xid"
 )
 
 // Lesson metadata. Maps directly to SQL definition of Lesson in db.
@@ -68,14 +68,14 @@ type NextLessonReq struct {
 }
 
 type TutorialLessonResponse struct {
-	ChapterDescription string `json:"chapterdescription"`
-	ChapterImage string `json:"chapterimage"`
-	ChapterName string `json:"chaptername"`
-	ChapterID string `json:"chapterid"`
+	ChapterDescription string         `json:"chapterdescription"`
+	ChapterImage       string         `json:"chapterimage"`
+	ChapterName        string         `json:"chaptername"`
+	ChapterID          string         `json:"chapterid"`
 	LessonDescriptions pq.StringArray `json:"lessondescriptions"`
-	LessonId string `json:"lessonid"`
-	LessonName string `json:"lessonname"`
-	LessonText pq.StringArray `json:"lessontext"`
+	LessonId           string         `json:"lessonid"`
+	LessonName         string         `json:"lessonname"`
+	LessonText         pq.StringArray `json:"lessontext"`
 }
 
 // NewChapter creates a Chapter from a chapterReq and inserts it into DB.
@@ -187,7 +187,7 @@ func NextLessonForStudent(uid string) (*TutorialLessonResponse, error) {
 		where l.lessonid != $1 and lc.lessonid != l.lessonid and l.chapterid = c.chapterid and lc.uid = $2
 		order by createdat limit 1`,
 		s.CurrentLessonID, s.UID).StructScan(&resp); err != nil {
-			return nil, err
+		return nil, err
 	}
 	return &resp, err
 }
@@ -204,7 +204,7 @@ func GetAllChapterNames() (*[]string, error) {
 func GetCurrentLessonForStudent(uid string) (*TutorialLessonResponse, error) {
 	s, err := GetStudent(uid)
 	if err != nil {
-		return nil , err
+		return nil, err
 	}
 
 	var resp TutorialLessonResponse
@@ -290,7 +290,7 @@ func GetOverallWPMAndAccuracy(uid string) (*map[string]interface{}, error) {
 	if stats["avgAccuracy"] == nil || stats["avgWPM"] == nil {
 		stats = map[string]interface{}{
 			"avgAccuracy": "0",
-			"avgWPM": "0",
+			"avgWPM":      "0",
 		}
 	}
 
@@ -300,9 +300,14 @@ func GetOverallWPMAndAccuracy(uid string) (*map[string]interface{}, error) {
 func GetProgressForCurrentUserLesson(uid string) (*map[string]interface{}, error) {
 	progress := make(map[string]interface{})
 
-	err := db.QueryRowx(
+	student, err := GetStudent(uid)
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.QueryRowx(
 		`select count(*) as totalLessons
-		from chapters C, lessons L, students S 
+		from chapters C, lessons L, students S
 		where S.currentchaptername = C.chaptername
 		and L.chapterid = C.chapterid
 		and S.uid=$1`, uid).MapScan(progress)
@@ -311,17 +316,14 @@ func GetProgressForCurrentUserLesson(uid string) (*map[string]interface{}, error
 	}
 
 	err = db.QueryRowx(
-		`select Count(*) as compCount
-		from students S, lessonscompleted LC, chapters C
-		where S.currentchaptername = C.chaptername
-		and S.currentchaptername != C.chaptername
-		and C.chapterid = LC.chapterid
-		and S.uid=$1`, uid).MapScan(progress)
+		`select count(*) as compCount
+		from students S, lessonscompleted LC
+		where S.uid = $1 
+		and LC.uid = $1 
+		and LC.chapterid = $2`,
+		uid, student.CurrentChapterID).MapScan(progress)
 
-	if err != nil {
-		return nil, err
-	}
-
+	fmt.Println(progress, student)
 	return &progress, nil
 }
 
@@ -343,7 +345,7 @@ func hasCompletedChapter(tx *sqlx.Tx, chapterid, uid string) (bool, error) {
 	return !(count == 0), nil
 }
 
- func UserDidFinishLesson(lc LessonsComplete) error {
+func UserDidFinishLesson(lc LessonsComplete) error {
 	tx, err := db.Beginx()
 	if err != nil {
 		return err
@@ -459,3 +461,24 @@ func GetCurrent(uid string) (*TutorialLessonResponse, error) {
 	}
 	return &resp, err
 }
+
+// Returns next sequential lesson given lesson id
+// This is different from other lesson retrieval functions
+// since it is not dependent on user.
+// func GetNextSequentialLesson(lessonId, chaperId string) (*TutorialLessonResponse, error) {
+// 	lessons := make(map[string]interface{})
+// 	rows, err := db.Queryx("SELECT lessonname, lessonid from Lessons where chapterid=$1", lessonId)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer rows.Close()
+// 	for rows.Next() {
+// 		var lessonname, lessonid string
+// 		err = rows.Scan(&lessonname, lessonid)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+
+// 	}
+// 	return nil, nil
+// }
