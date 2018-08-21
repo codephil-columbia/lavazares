@@ -19,7 +19,8 @@ import (
 )
 
 const (
-	connStr = "user=codephil dbname=lavazaresdb password=codephil! port=5432 host=lavazares-db1.cnodp99ehkll.us-west-2.rds.amazonaws.com sslmode=disable"
+	// connStr = "user=codephil dbname=lavazaresdb password=codephil! port=5432 host=lavazares-db1.cnodp99ehkll.us-west-2.rds.amazonaws.com sslmode=disable"
+	connStr = "port=1000 host=localhost sslmode=disable user=postgres dbname=postgres"
 )
 
 func main() {

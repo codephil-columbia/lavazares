@@ -6,8 +6,8 @@ import (
 	"log"
 	"time"
 
-	"golang.org/x/crypto/bcrypt"
 	"github.com/rs/xid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var (
@@ -34,13 +34,13 @@ type User struct {
 	WhichOccupation string     `json:"whichOccupation"`
 }
 
-func (u *User) GetUserSimpleFields() (map[string]string) {
-	return map[string]string {
-		"username": u.Username,
+func (u *User) GetUserSimpleFields() map[string]string {
+	return map[string]string{
+		"username":  u.Username,
 		"firstName": u.FirstName,
-		"lastName": u.LastName,
-		"email": u.Email,
-		"uid": u.UID,
+		"lastName":  u.LastName,
+		"email":     u.Email,
+		"uid":       u.UID,
 	}
 }
 
@@ -48,7 +48,7 @@ type Student struct {
 	Gender             string `json:"gender" db:"gender"`
 	DOB                string `json:"dob" db:"dob"`
 	CurrentLessonID    string `json:"currentlessonid" db:"currentlessonid"`
-	CurrentChapterID string `json:"currentchapterid" db:"currentchapterid"`
+	CurrentChapterID   string `json:"currentchapterid" db:"currentchapterid"`
 	CurrentChapterName string `db:"currentchaptername"`
 	UID                string `db:"uid"`
 }
@@ -62,7 +62,7 @@ type Employed struct {
 // Have to join w/ Student
 type Pupil struct {
 	Student
-	SchoolYear         string `json:"schoolyear" db:"schoolyear"`
+	SchoolYear string `json:"schoolyear" db:"schoolyear"`
 }
 
 type Instructor struct {
@@ -102,7 +102,6 @@ func NewUser(fields []byte) (*User, error) {
 	case EMPLOYED:
 		NewEmployedStudent(fields, u)
 	}
-
 	return &u, err
 }
 
@@ -202,7 +201,7 @@ func GetStudent(uid string) (*Student, error) {
 
 //AuthenticateUser authenticates and returns a user
 func AuthenticateUser(userAuthRequest []byte) (*User, error) {
-  u, u2 := User{}, User{}
+	u, u2 := User{}, User{}
 	err := json.Unmarshal(userAuthRequest, &u)
 	if err != nil {
 		return nil, err
@@ -216,7 +215,7 @@ func AuthenticateUser(userAuthRequest []byte) (*User, error) {
 		return nil, err
 	}
 
-  return &u2, nil
+	return &u2, nil
 }
 
 // EditPassword edits (rehashes) the password of an existing user
