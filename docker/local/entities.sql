@@ -7,15 +7,24 @@ CREATE TABLE Users (
     CreatedAt TIMESTAMP DEFAULT current_timestamp,
     DeletedAt TIMESTAMP,
     UpdatedAt TIMESTAMP DEFAULT current_timestamp,
+    FirstName TEXT NOT NULL, 
+    LastName TEXT NOT NULL,
     PRIMARY KEY(UID)
 );
 
 CREATE TABLE Students (
     Gender TEXT NOT NULL, 
     DOB TEXT NOT NULL,
-    SchoolYear INTEGER NOT NULL,
     CurrentLessonID TEXT NOT NULL,
+    CurrentChapterName TEXT NOT NULL, 
+    CurrentChapterID TEXT NOT NULL,
     UID TEXT NOT NULL,
+    FOREIGN KEY(UID) REFERENCES Users
+);
+
+CREATE TABLE Pupils (
+    SchoolYear TEXT,
+    UID TEXT,
     FOREIGN KEY(UID) REFERENCES Users
 );
 
@@ -28,25 +37,33 @@ CREATE TABLE Instructors (
     FOREIGN KEY(UID) REFERENCES Users
 );
 
+CREATE TABLE Employed (
+    Occupation TEXT,
+    UID TEXT NOT NULL,
+    Primary Key(UID)
+);
+
+
 CREATE TABLE Chapters (
     ChapterID TEXT,
     ChapterName TEXT,
     ChapterDescription TEXT,
+    ChapterImage Text,
     PRIMARY KEY(ChapterID)
 );
 
 
 CREATE TABLE Lessons (
     LessonName TEXT,
-    LessonText TEXT[][],
+    LessonText TEXT[],
     LessonID TEXT,
     ChapterID TEXT,
-    Image Text[][],
-    LessonDescriptions TEXT[][],
+    Image Text[],
+    LessonDescriptions TEXT[],
     CreatedAt TIMESTAMP DEFAULT current_timestamp,
     DeletedAt TIMESTAMP,
     UpdatedAt TIMESTAMP DEFAULT current_timestamp,
-    MinimumScoreToPass INTEGER[][],
+    MinimumScoreToPass INTEGER[],
     FOREIGN KEY(ChapterID) REFERENCES Chapters,
     PRIMARY KEY(LessonID)
 );
@@ -68,9 +85,12 @@ CREATE TABLE Classrooms (
     PRIMARY KEY(ClassroomID)
 );
 
-CREATE TABLE LessonsCompleted (
+CREATE TABLE lessonscompleted (
     LessonID TEXT NOT NULL,
     UID TEXT NOT NULL,
+    Accuracy DECIMAL,
+    WPM DECIMAL,
+    ChapterID TEXT,
     FOREIGN KEY(LessonID) REFERENCES Lessons,
     FOREIGN KEY(UID) REFERENCES Users,
     PRIMARY KEY(LessonID, UID)

@@ -3,8 +3,9 @@
 
 ## Local environment setup
 1. `git pull origin master`
-2. Ensure you have all `go` dependencies. [dep](https://github.com/golang/dep) is the best way to get them.
-3. `go run main.go` starts the backend on `localhost:5000`, which is the default port that the `typephil` frontend looks for.
+2. Ensure you have all `go` dependencies using `dep ensure`. [dep](https://github.com/golang/dep) is the best way to get them. 
+3. Build the local db container in a seperate terminal. Run `docker build ./docker/local/`. Take the ID of the container it builds and run `docker run -d -p 1000:5432 <container-id>`.
+4. `go run main.go -local` starts the backend on `localhost:5000`, which is the default port that the `typephil` frontend looks for.
 
 ## Running on AWS 
 1. Rebuild the app. `go build .`
