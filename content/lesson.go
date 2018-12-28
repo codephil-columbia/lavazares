@@ -10,7 +10,8 @@ import (
 	"github.com/lib/pq"
 )
 
-// Lesson struct
+// Lesson stores information about a specific lesson
+// Most lessons have been hardcoded atm.
 type Lesson struct {
 	LessonID           string         `db:"lessonid" json:"lessonID"`
 	CreatedAt          time.Time      `db:"createdat" json:"createdAt"`
@@ -31,6 +32,8 @@ type Lesson struct {
 
 // DefaultLessonManager handles most of the basic operations on generic
 // Lesson objects
+// All operations on Lessons through the DefaultLessonManager for now
+// are read only
 type DefaultLessonManager struct {
 	store  *lessonStore
 	logger *log.Logger
@@ -47,10 +50,15 @@ func NewDefaultLessonManager(db *sqlx.DB) *DefaultLessonManager {
 	}
 }
 
-// // MarkLessonAsComplete marks a Lesson completed by a User
-// func (dlm *DefaultLessonManager) MarkLessonAsComplete(uid, lessonID string) error {
-// 	l, err := dlm.store.Query(lessonID)
-// }
+// GetLesson returns a lesson by id
+func (manager *DefaultLessonManager) GetLesson(id string) (*Lesson, error) {
+	return manager.store.Query(id)
+}
+
+// GetLessons returns a slice to all lessons
+func (manager *DefaultLessonManager) GetLessons() ([]*Lesson, error) {
+	return manager.store.QueryAll()
+}
 
 // lessonStore is the object used to interact with underlying Lesson objects
 // in the database.
@@ -74,14 +82,19 @@ func (store *lessonStore) Query(ID string) (*Lesson, error) {
 func (store *lessonStore) QueryAll() ([]*Lesson, error) {
 	var all []*Lesson
 	rows, err := store.db.Queryx("SELECT * FROM Lessons")
+	if err != nil {
+		rows.Close()
+		return nil, err
+	}
+
 	for rows.Next() {
-		var l *Lesson
+		l := Lesson{}
 		err = rows.StructScan(&l)
 		if err != nil {
 			rows.Close()
 			return nil, err
 		}
-		all = append(all, l)
+		all = append(all, &l)
 	}
 	return all, nil
 }
