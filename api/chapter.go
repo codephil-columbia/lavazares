@@ -1,6 +1,7 @@
 package api
 
 import (
+	"lavazares/utils"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -20,7 +21,7 @@ func ChapterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = sendJSON(chapter, w)
+	err = utils.SendJSON(chapter, w)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -35,7 +36,7 @@ func ChaptersHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = sendJSON(chapters, w)
+	err = utils.SendJSON(chapters, w)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"lavazares/auth"
 	"lavazares/content"
 
 	"github.com/gorilla/mux"
@@ -10,6 +11,7 @@ import (
 
 var lessonManager *content.DefaultLessonManager
 var chapterManager *content.DefaultChapterManager
+var userManager *auth.DefaultUserManager
 
 const (
 	localPostgres = "port=5432 host=localhost sslmode=disable user=postgres dbname=postgres"
@@ -35,6 +37,7 @@ func (a *API) initAPI() {
 
 	lessonManager = content.NewDefaultLessonManager(db)
 	chapterManager = content.NewDefaultChapterManager(db)
+	userManager = auth.NewDefaultUserManager(auth.NewUserStore(db))
 
 	lessonRouter := a.BaseRouter.PathPrefix("/lesson").Subrouter()
 	lessonRouter.HandleFunc("/", LessonsHandler)

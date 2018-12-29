@@ -1,6 +1,7 @@
 package api
 
 import (
+	"lavazares/utils"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -20,7 +21,7 @@ func LessonHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = sendJSON(lesson, w)
+	err = utils.SendJSON(lesson, w)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -35,7 +36,7 @@ func LessonsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = sendJSON(lessons, w)
+	err = utils.SendJSON(lessons, w)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
