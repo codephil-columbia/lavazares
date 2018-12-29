@@ -41,6 +41,8 @@ type DefaultUserManager struct {
 	logger *log.Logger
 }
 
+// NewDefaultUserManager performs operations on User objects.
+// It is also responsible for User authentication
 func NewDefaultUserManager(store UserStore) *DefaultUserManager {
 	return &DefaultUserManager{
 		store:  store,
@@ -73,6 +75,13 @@ func (manager *DefaultUserManager) NewUser(args utils.RequestJSON) (*User, error
 	return &user, nil
 }
 
+// IsUsernameValid checks to see whether a username is valid. Validity is defined
+// as no two usernames should be the same.
+func (manager *DefaultUserManager) IsUsernameValid(username string) bool {
+	_, err := manager.store.QueryByUsername(username)
+	return err != nil
+}
+
 func (manager *DefaultUserManager) hashPassword(password string) (string, error) {
 	if password == "" {
 		return "", errors.New("string was empty")
@@ -93,18 +102,31 @@ type userStore struct {
 	db *sqlx.DB
 }
 
+// UserStore defines User db operations
 type UserStore interface {
 	Query(id string) (*User, error)
+	QueryByUsername(username string) (*User, error)
 	Insert(user *User) error
 }
 
-func NewUserStore(db *sqlx.DB) *userStore {
+// NewUserStore creates a new generic userStore with the
+// given db param
+func NewUserStore(db *sqlx.DB) UserStore {
 	return &userStore{db: db}
+}
+
+func (store *userStore) QueryByUsername(username string) (*User, error) {
+	var user User
+	err := store.db.QueryRowx("SELECT * FROM Users WHERE username = $1", username).StructScan(&user)
+	if err != nil {
+		return nil, err
+	}
+	return &user, err
 }
 
 func (store *userStore) Query(id string) (*User, error) {
 	var u User
-	err := store.db.QueryRowx("SELECT * FROM Users WHERE id = $1", id).StructScan(&u)
+	err := store.db.QueryRowx("SELECT * FROM Users WHERE uid = $1", id).StructScan(&u)
 	if err != nil {
 		return nil, err
 	}
