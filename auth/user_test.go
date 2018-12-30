@@ -56,6 +56,14 @@ func (store MockUserStore) QueryByUsername(username string) (*User, error) {
 	return &testUser, nil
 }
 
+func (store MockUserStore) DeleteByUsername(username string) error {
+	return nil
+}
+
+func (store MockUserStore) UpdateUserByUsername(username, field, value string) error {
+	return nil
+}
+
 func addTestData() {
 	_, err := testDB.Exec(`INSERT INTO 
 		users(UID, Firstname, Lastname, 
@@ -229,6 +237,61 @@ func TestInsert(t *testing.T) {
 			if err != nil {
 				if !tc.expectedErr {
 					t.Errorf("got [%v], expected err to be [%v]", err.Error(), tc.expectedErr)
+				}
+			}
+		})
+	}
+}
+
+func TestDeleteByUsername(t *testing.T) {
+	cases := []struct {
+		name        string
+		user        User
+		expectedErr bool
+	}{
+		{"Delete existing User", testUser, false},
+		{"Delete nonexisting User", User{Username: "Sang"}, true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			addTestData()
+			defer func() {
+				if tc.expectedErr {
+					removeTestData()
+				}
+			}()
+
+			err := store.DeleteByUsername(tc.user.Username)
+			if err != nil {
+				if !tc.expectedErr {
+					t.Errorf("got [%v], expected [%v]", err, tc.expectedErr)
+				}
+			}
+		})
+	}
+}
+
+func TestUpdateUserByUsername(t *testing.T) {
+	cases := []struct {
+		name        string
+		user        User
+		field       string
+		value       string
+		expectedErr bool
+	}{
+		{"Successfully updates field in user", testUser, "username", "lilpump", false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			addTestData()
+			defer removeTestData()
+
+			err := store.UpdateUserByUsername(tc.user.Username, tc.field, tc.value)
+			if err != nil {
+				if !tc.expectedErr {
+					log.Printf("")
 				}
 			}
 		})

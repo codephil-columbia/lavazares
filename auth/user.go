@@ -14,6 +14,8 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// TODO: Add required struct tags
+
 //User metadata that is stored in the database
 type User struct {
 	UID             string     `json:"uid"`
@@ -28,10 +30,6 @@ type User struct {
 	Occupation      string     `json:"occupation"`
 	WhichOccupation string     `json:"whichOccupation"`
 }
-
-// func (u *User) Unmarshal(byt []byte) error {
-
-// }
 
 const defaultUserManagerLogger = "DefaultUserManager"
 
@@ -50,17 +48,43 @@ func NewDefaultUserManager(store UserStore) *DefaultUserManager {
 	}
 }
 
+// EditPassword changes and reshashes a Users password
+func (manager *DefaultUserManager) EditPassword(username, password string) error {
+	user, err := manager.store.QueryByUsername(username)
+	if err != nil {
+		return err
+	}
+	newHashed, err := manager.hashPassword(user.Password)
+	if err != nil {
+		return err
+	}
+	return manager.store.UpdateUserByUsername(user.Username, "password", newHashed)
+}
+
+// Authenticate authenticates a user by checking whether there exists a username
+// password pair thats in the db. If the password and hash match, error returned is nil.
+func (manager *DefaultUserManager) Authenticate(username, password string) error {
+	user, err := manager.store.QueryByUsername(username)
+	if err != nil {
+		return err
+	}
+	return bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+}
+
+func (manager *DefaultUserManager) removeUserByUsername(username string) error {
+	return manager.store.DeleteByUsername(username)
+}
+
 // NewUser creates and saves a User
 // Before doing so, it will set the UID and hash the password
+// TODO: Maybe change this to take in the user post unmarsheling?
 func (manager *DefaultUserManager) NewUser(args utils.RequestJSON) (*User, error) {
 	var user User
 	err := json.Unmarshal(args, &user)
 	if err != nil {
 		return nil, err
 	}
-
 	user.UID = xid.New().String()
-
 	hashed, err := manager.hashPassword(user.Password)
 	if err != nil {
 		return nil, err
@@ -71,7 +95,6 @@ func (manager *DefaultUserManager) NewUser(args utils.RequestJSON) (*User, error
 	if err != nil {
 		return nil, err
 	}
-
 	return &user, nil
 }
 
@@ -84,7 +107,7 @@ func (manager *DefaultUserManager) IsUsernameValid(username string) bool {
 
 func (manager *DefaultUserManager) hashPassword(password string) (string, error) {
 	if password == "" {
-		return "", errors.New("string was empty")
+		return "", errors.New("password was empty")
 	}
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	if err != nil {
@@ -98,6 +121,12 @@ func (manager *DefaultUserManager) GetUser(id string) (*User, error) {
 	return manager.store.Query(id)
 }
 
+// GetUserByUsername returns a user given a specific username
+func (manager *DefaultUserManager) GetUserByUsername(username string) (*User, error) {
+	return manager.store.QueryByUsername(username)
+}
+
+// userStore satisfies UserStore interface
 type userStore struct {
 	db *sqlx.DB
 }
@@ -107,12 +136,30 @@ type UserStore interface {
 	Query(id string) (*User, error)
 	QueryByUsername(username string) (*User, error)
 	Insert(user *User) error
+	DeleteByUsername(username string) error
+	UpdateUserByUsername(username, field, value string) error
 }
 
 // NewUserStore creates a new generic userStore with the
-// given db param
+// given db param.
 func NewUserStore(db *sqlx.DB) UserStore {
 	return &userStore{db: db}
+}
+
+func (store *userStore) UpdateUserByUsername(username, field, value string) error {
+	_, err := store.db.Exec("UPDATE users SET $1 = $2 WHERE username = $3", field, value, username)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (store *userStore) DeleteByUsername(username string) error {
+	_, err := store.db.Exec("DELETE FROM Users WHERE username = $1", username)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (store *userStore) QueryByUsername(username string) (*User, error) {
