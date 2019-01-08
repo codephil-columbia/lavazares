@@ -9,10 +9,6 @@ import (
 // RequestJSON provides a wrapper for json.Unmarshal
 type RequestJSON []byte
 
-func (r RequestJSON) Unmarshal(byt []byte) {
-
-}
-
 func ReadBody(body io.ReadCloser) (RequestJSON, error) {
 	json, err := ioutil.ReadAll(body)
 	defer body.Close()
@@ -22,13 +18,20 @@ func ReadBody(body io.ReadCloser) (RequestJSON, error) {
 	return json, nil
 }
 
+// ReadBodyToMap reads JSON bytes from an io.ReaderCloser and returns it as a map[string]string.
+// Important to note that this probably only works for non-nested JSON, but haven't tested it.
 func ReadBodyToMap(body io.ReadCloser) (map[string]string, error) {
-	json, err := ReadBody(body)
+	byt, err := ioutil.ReadAll(body)
+	defer body.Close()
 	if err != nil {
 		return nil, err
 	}
-	_ := make(map[string]string)
-	// err = json.Unmarshal([]byte(json), &data)
+	data := make(map[string]string)
+	err = json.Unmarshal(byt, &data)
+	if err != nil {
+		return nil, err
+	}
+	return data, err
 }
 
 func SendJSON(obj interface{}, w io.Writer) error {

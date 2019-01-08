@@ -33,11 +33,11 @@ func (a *API) initAPI() {
 		return
 	}
 
-	a.BaseRouter = mux.NewRouter()
-
 	lessonManager = content.NewDefaultLessonManager(db)
 	chapterManager = content.NewDefaultChapterManager(db)
 	userManager = auth.NewDefaultUserManager(auth.NewUserStore(db))
+
+	a.BaseRouter = mux.NewRouter()
 
 	lessonRouter := a.BaseRouter.PathPrefix("/lesson").Subrouter()
 	lessonRouter.HandleFunc("/", LessonsHandler)
@@ -46,6 +46,11 @@ func (a *API) initAPI() {
 	chapterRouter := a.BaseRouter.PathPrefix("/chapter").Subrouter()
 	chapterRouter.HandleFunc("/{id}", ChapterHandler)
 	chapterRouter.HandleFunc("/", ChaptersHandler)
+
+	userRouter := a.BaseRouter.PathPrefix("/user").Subrouter()
+	userRouter.HandleFunc("/", newUserHandler).Methods("POST")
+	userRouter.HandleFunc("/edit/password", editPasswordHandler).Methods("POST")
+	userRouter.HandleFunc("/authenticate", authenticateHandler).Methods("POST")
 
 }
 

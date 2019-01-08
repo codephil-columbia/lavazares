@@ -75,16 +75,21 @@ func (manager *DefaultUserManager) removeUserByUsername(username string) error {
 	return manager.store.DeleteByUsername(username)
 }
 
-// NewUser creates and saves a User
-// Before doing so, it will set the UID and hash the password
-// TODO: Maybe change this to take in the user post unmarsheling?
+// NewUser creates and saves a User.
+// Before doing so, it will set the UID and hash the password.
+// Since the DB will make sure that all the required fields are not null,
+// we only have to check to make sure the password is set before we hash it.
 func (manager *DefaultUserManager) NewUser(args utils.RequestJSON) (*User, error) {
 	var user User
 	err := json.Unmarshal(args, &user)
 	if err != nil {
 		return nil, err
 	}
+
 	user.UID = xid.New().String()
+	if user.Password == "" {
+		return nil, errors.New("User password was empty")
+	}
 	hashed, err := manager.hashPassword(user.Password)
 	if err != nil {
 		return nil, err
