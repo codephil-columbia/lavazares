@@ -7,17 +7,101 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// LessonRecord represents a completed Lesson finished
-// by a User in the Tutorial mode
-// type LessonRecord struct {
-// 	LessonID  string `json:"lessonID" db:"lessonid"`
-// 	ChapterID string `json:"chapterID" db:"chapterid"`
-// 	UID       string `json:"uid" db:"uid"`
-// 	WPM       string `json:"wpm" db:"wpm"`
-// 	Accuracy  string `json:"accuracy" db:"accuracy"`
-// }
+// TutorialRecordManager manages Tutorial Records
+// Amongst those include LessonCompleted records,
+// ChapterCompleted records.
+type TutorialRecordManager struct {
+	lessonRecordStore  recordStore
+	chapterRecordStore recordStore
+	db                 sqlx.DB
+}
+
+// Save saves a record
+func (manager *TutorialRecordManager) Save(record record) error {
+	switch r := record.(type) {
+	case LessonRecord:
+		exists, err := manager.lessonRecordStore.exists(r)
+		if err != nil {
+			return err
+		}
+		if exists {
+			return manager.lessonRecordStore.update(record)
+		}
+		return manager.lessonRecordStore.save(record)
+	case ChapterRecord:
+		err := manager.chapterRecordStore.save(r)
+		if err != nil {
+			return err
+		}
+		return nil
+	default:
+		return nil
+	}
+}
 
 type record interface {
+}
+
+type recordStore interface {
+	save(r record) error
+	update(r record) error
+	exists(r record) (bool, error)
+}
+
+type ChapterRecord struct {
+	ChapterID string `db:"chapterid" json:"chapterID"`
+	UID       string `db:"uid" json:"uid"`
+}
+
+type chapterRecordStore struct {
+	db *sqlx.DB
+}
+
+func newChapterRecordStore(db *sqlx.DB) *chapterRecordStore {
+	return &chapterRecordStore{db: db}
+}
+
+// NewChapterRecord creates a new ChapterRecord from an incoming
+// JSON object.
+func NewChapterRecord(args utils.RequestJSON) (*ChapterRecord, error) {
+	var record ChapterRecord
+	err := json.Unmarshal(args, &record)
+	if err != nil {
+		return nil, err
+	}
+	return &record, nil
+}
+
+func (store *chapterRecordStore) save(record *ChapterRecord) error {
+	_, err := store.db.Exec(
+		`INSERT INTO ChaptersCompleted(ChapterID, UID)
+		VALUES($1, $2)`,
+		record.ChapterID,
+		record.UID,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (store *chapterRecordStore) update(record *ChapterRecord) error {
+	return nil
+}
+
+func (store *chapterRecordStore) exists(record *ChapterRecord) (bool, error) {
+	var count int
+	err := store.db.Get(
+		&count,
+		`SELECT count(*) FROM ChaptersCompleted 
+		 WHERE chapterid=$1 and uid=$2`,
+		record.ChapterID,
+		record.UID,
+	)
+	if err != nil {
+		return false, err
+	}
+	return count != 0, nil
 }
 
 type LessonRecord struct {
@@ -36,7 +120,8 @@ func newLessonRecordStore(db *sqlx.DB) *lessonRecordStore {
 	return &lessonRecordStore{db: db}
 }
 
-// NewLessonRecord creates a new LessonRecord
+// NewLessonRecord creates a new LessonRecord from an
+// incoming JSON object
 func NewLessonRecord(args utils.RequestJSON) (*LessonRecord, error) {
 	var record LessonRecord
 	err := json.Unmarshal(args, &record)
@@ -91,31 +176,4 @@ func (store *lessonRecordStore) exists(record *LessonRecord) (bool, error) {
 		return false, err
 	}
 	return count != 0, nil
-}
-
-type TutorialRecordManager struct {
-	lessonRecordStore recordStore
-	db                sqlx.DB
-}
-
-type recordStore interface {
-	save(r record) error
-	update(r record) error
-	exists(r record) (bool, error)
-}
-
-func (manager *TutorialRecordManager) Save(record record) error {
-	switch r := record.(type) {
-	case LessonRecord:
-		exists, err := manager.lessonRecordStore.exists(r)
-		if err != nil {
-			return err
-		}
-		if exists {
-			return manager.lessonRecordStore.update(record)
-		}
-		return manager.lessonRecordStore.save(record)
-	default:
-		return nil
-	}
 }

@@ -13,9 +13,10 @@ import (
 )
 
 var (
-	testDB                *sqlx.DB
-	testLessonRecordStore *lessonRecordStore
-	validLessonRecord     = LessonRecord{
+	testDB                 *sqlx.DB
+	testLessonRecordStore  *lessonRecordStore
+	testChapterRecordStore *chapterRecordStore
+	validLessonRecord      = LessonRecord{
 		LessonID:  "1",
 		ChapterID: "2",
 		UID:       "123",
@@ -41,6 +42,7 @@ func TestMain(m *testing.M) {
 	}
 
 	testLessonRecordStore = newLessonRecordStore(testDB)
+	testChapterRecordStore = newChapterRecordStore(testDB)
 
 	os.Exit(m.Run())
 }
