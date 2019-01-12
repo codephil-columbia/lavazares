@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/gorilla/mux"
@@ -16,6 +17,8 @@ func TestMain(m *testing.M) {
 	testBaseRouter = mux.NewRouter()
 	testUserRouter = testBaseRouter.PathPrefix("/user").Subrouter()
 	testBaseRouter.HandleFunc("/edit/password", editPasswordHandler)
+	ret := m.Run()
+	os.Exit(ret)
 }
 
 func TestEditPasswordHandler(t *testing.T) {

@@ -15,6 +15,21 @@ type Chapter struct {
 	ChapterImage       string `db:"chapterimage" json:"chapterImage"`
 }
 
+type chapters []*Chapter
+
+func (c chapters) Len() int      { return len(c) }
+func (c chapters) Swap(i, j int) { c[i], c[j] = c[j], c[i] }
+func (c chapters) Less(i, j int) bool {
+	return compareChapterNames(c[i], c[j])
+}
+
+func compareChapterNames(c1 *Chapter, c2 *Chapter) bool {
+	if c1.ChapterName > c2.ChapterName {
+		return false
+	}
+	return true
+}
+
 // DefaultChapterManager provides read only access to Chapter objs
 type DefaultChapterManager struct {
 	store  *chapterStore

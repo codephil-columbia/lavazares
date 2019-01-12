@@ -23,6 +23,10 @@ var (
 		WPM:       "100",
 		Accuracy:  "100",
 	}
+	validChapterRecord = ChapterRecord{
+		ChapterID: "2",
+		UID:       "123",
+	}
 )
 
 const (
@@ -47,10 +51,144 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+func TestNewChapterRecord(t *testing.T) {
+	cases := []struct {
+		name           string
+		json           utils.RequestJSON
+		expectedRecord ChapterRecord
+		expectedErr    bool
+	}{
+		{
+			"Should create valid record successfully",
+			[]byte(`{
+				"chapterID":"2",
+				"uid":"123"
+			}`),
+			validChapterRecord,
+			false,
+		}, {
+			"Should throw error when missing required field",
+			[]byte(`{
+				"chapterID":"2"
+			}`),
+			ChapterRecord{},
+			true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			record, err := NewChapterRecord(tc.json)
+			t.Log(err, "errr")
+			if err != nil {
+				if !tc.expectedErr {
+					t.Errorf("Unexpected err: [%v]", err)
+				}
+			} else {
+				if !reflect.DeepEqual(*record, tc.expectedRecord) {
+					t.Errorf("Expected [%v], got [%v]", tc.expectedRecord, record)
+				}
+			}
+		})
+	}
+}
+
+func TestChapterRecordStoreSave(t *testing.T) {
+	cases := []struct {
+		name        string
+		record      ChapterRecord
+		expectedErr bool
+	}{
+		{
+			"Should be able to insert valid record",
+			validChapterRecord,
+			false,
+		},
+		{
+			"Should throw err when record is in valid",
+			ChapterRecord{
+				// ChapterID not valid
+				ChapterID: "456",
+				UID:       "123",
+			},
+			true,
+		},
+	}
+
+	addTestChapter()
+	addTestUser()
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := testChapterRecordStore.save(&tc.record)
+			if err != nil {
+				if !tc.expectedErr {
+					t.Errorf("Unexpected err: [%v]", err)
+				}
+			} else {
+				removeTestChapterRecord(tc.record.ChapterID)
+			}
+		})
+	}
+	removeTestUser()
+	removeTestChapter()
+}
+
+func TestChapterRecordStoreExists(t *testing.T) {
+	cases := []struct {
+		name        string
+		record      ChapterRecord
+		expectedErr bool
+		exists      bool
+	}{
+		{
+			"Should find existing record",
+			validChapterRecord,
+			false,
+			true,
+		}, {
+			"Should throw err when record is invalid",
+			ChapterRecord{
+				UID: "123",
+			},
+			true,
+			false,
+		}, {
+			"Should return false when record does not exists",
+			ChapterRecord{
+				UID:       "123",
+				ChapterID: "1",
+			},
+			false,
+			false,
+		},
+	}
+
+	addTestChapter()
+	addTestUser()
+	addTestChapterRecord()
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			exists, err := testChapterRecordStore.exists(&tc.record)
+			if err != nil {
+				if !tc.expectedErr {
+					t.Errorf("Unexpected err: [%v]", err)
+				}
+			} else {
+				if exists != tc.exists {
+					t.Errorf("Exists returned [%v], expected [%v]", exists, tc.exists)
+				}
+			}
+		})
+	}
+	removeTestChapterRecord(validChapterRecord.ChapterID)
+	removeTestUser()
+	removeTestChapter()
+}
+
 func TestNewLessonRecord(t *testing.T) {
 	cases := []struct {
 		name        string
-		args        utils.RequestJSON
+		json        utils.RequestJSON
 		expected    LessonRecord
 		expectedErr bool
 	}{
@@ -68,7 +206,7 @@ func TestNewLessonRecord(t *testing.T) {
 		}, {
 			"Should reject faulty record due to missing fields",
 			[]byte(`{
-				"lessonID:"1"
+				"lessonID":"1"
 			}`),
 			LessonRecord{},
 			true,
@@ -77,7 +215,8 @@ func TestNewLessonRecord(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			record, err := NewLessonRecord(tc.args)
+			record, err := NewLessonRecord(tc.json)
+			t.Log(err, "ERRR")
 			if err != nil {
 				if !tc.expectedErr {
 					t.Errorf("Unexpected error [%v]", err)
@@ -110,16 +249,16 @@ func TestLessonRecordStoreSave(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			addTestData()
+			addTestLesson()
 			err := testLessonRecordStore.save(&tc.record)
 			if err != nil {
 				if !tc.expectedErr {
 					t.Errorf("expected nil error, got [%v]", err)
 				}
 			} else {
-				removeTestRecord(tc.record.LessonID)
+				removeTestLessonRecord(tc.record.LessonID)
 			}
-			removeTestData()
+			removeTestLesson()
 		})
 	}
 }
@@ -148,8 +287,8 @@ func TestLessonRecordStoreUpdate(t *testing.T) {
 		},
 	}
 
-	addTestData()
-	addTestRecord()
+	addTestLesson()
+	addTestLessonRecord()
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := testLessonRecordStore.update(&tc.record)
@@ -159,8 +298,8 @@ func TestLessonRecordStoreUpdate(t *testing.T) {
 				}
 			}
 		})
-		removeTestRecord(validLessonRecord.LessonID)
-		removeTestData()
+		removeTestLessonRecord(validLessonRecord.LessonID)
+		removeTestLesson()
 	}
 }
 
@@ -192,8 +331,8 @@ func TestLessonRecordStoreExists(t *testing.T) {
 		},
 	}
 
-	addTestData()
-	addTestRecord()
+	addTestLesson()
+	addTestLessonRecord()
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			exists, err := testLessonRecordStore.exists(&tc.record)
@@ -208,27 +347,23 @@ func TestLessonRecordStoreExists(t *testing.T) {
 			}
 		})
 	}
-	removeTestRecord(validLessonRecord.LessonID)
-	removeTestData()
+	removeTestLessonRecord(validLessonRecord.LessonID)
+	removeTestLesson()
 }
 
-func addTestRecord() {
-	err := testLessonRecordStore.save(&validLessonRecord)
-	if err != nil {
-		log.Fatalln(err)
-	}
-}
-
-func removeTestRecord(id string) {
-	_, err := testDB.Exec("DELETE FROM LessonsCompleted WHERE LessonID=$1", id)
-	if err != nil {
-		log.Fatalln(err)
-	}
-}
-
-func addTestData() {
-	l := content.Lesson{LessonID: "1", ChapterID: "2"}
+func addTestChapter() {
 	c := content.Chapter{ChapterID: "2"}
+	_, err := testDB.Exec(
+		`INSERT INTO Chapters(ChapterID)
+		VALUES($1)`,
+		c.ChapterID,
+	)
+	if err != nil {
+		log.Fatalln(err)
+	}
+}
+
+func addTestUser() {
 	u := auth.User{
 		UID:        "123",
 		Username:   "neil wang wang",
@@ -238,27 +373,7 @@ func addTestData() {
 		Email:      "someemail@email.com",
 		Occupation: "student",
 	}
-
 	_, err := testDB.Exec(
-		`INSERT INTO Chapters(ChapterID)
-		VALUES($1)`,
-		c.ChapterID,
-	)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	_, err = testDB.Exec(
-		`INSERT INTO Lessons(LessonID, ChapterID)
-		VALUES($1, $2)`,
-		l.LessonID,
-		l.ChapterID,
-	)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	_, err = testDB.Exec(
 		`INSERT INTO Users(UID, Username, Password, FirstName, LastName, Email, Occupation) 
 		VALUES($1, $2, $3, $4, $5, $6, $7)`,
 		u.UID,
@@ -274,16 +389,69 @@ func addTestData() {
 	}
 }
 
-func removeTestData() {
+func addTestLessonRecord() {
+	err := testLessonRecordStore.save(&validLessonRecord)
+	if err != nil {
+		log.Fatalln(err)
+	}
+}
+
+func addTestChapterRecord() {
+	err := testChapterRecordStore.save(&validChapterRecord)
+	if err != nil {
+		log.Fatalln(err)
+	}
+}
+
+func removeTestLessonRecord(id string) {
+	_, err := testDB.Exec("DELETE FROM LessonsCompleted WHERE LessonID=$1", id)
+	if err != nil {
+		log.Fatalln(err)
+	}
+}
+
+func removeTestChapterRecord(id string) {
+	_, err := testDB.Exec("DELETE FROM ChaptersCompleted WHERE ChapterID=$1", id)
+	if err != nil {
+		log.Fatalln(err)
+	}
+}
+
+func addTestLesson() {
+	l := content.Lesson{LessonID: "1", ChapterID: "2"}
+
+	addTestChapter()
+	addTestUser()
+
+	_, err := testDB.Exec(
+		`INSERT INTO Lessons(LessonID, ChapterID)
+		VALUES($1, $2)`,
+		l.LessonID,
+		l.ChapterID,
+	)
+	if err != nil {
+		log.Fatalln(err)
+	}
+}
+
+func removeTestLesson() {
 	_, err := testDB.Exec(`DELETE FROM Lessons WHERE lessonid=$1`, "1")
 	if err != nil {
 		log.Fatalln(err)
 	}
-	_, err = testDB.Exec(`DELETE FROM Chapters WHERE chapterid=$1`, "2")
+	removeTestUser()
+	removeTestChapter()
+}
+
+func removeTestUser() {
+	_, err := testDB.Exec("DELETE FROM Users WHERE uid=$1", "123")
 	if err != nil {
 		log.Fatalln(err)
 	}
-	_, err = testDB.Exec("DELETE FROM Users WHERE uid=$1", "123")
+}
+
+func removeTestChapter() {
+	_, err := testDB.Exec(`DELETE FROM Chapters WHERE chapterid=$1`, "2")
 	if err != nil {
 		log.Fatalln(err)
 	}

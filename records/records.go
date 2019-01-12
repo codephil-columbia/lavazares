@@ -2,34 +2,51 @@ package records
 
 import (
 	"encoding/json"
+	"errors"
+	"lavazares/content"
 	"lavazares/utils"
 
 	"github.com/jmoiron/sqlx"
 )
 
+type lessonID string
+type uid string
+
+var errUserCompletedAllLessons = errors.New("User has no uncompleted lessons")
+
 // TutorialRecordManager manages Tutorial Records
 // Amongst those include LessonCompleted records,
 // ChapterCompleted records.
 type TutorialRecordManager struct {
-	lessonRecordStore  recordStore
-	chapterRecordStore recordStore
-	db                 sqlx.DB
+	lessonRecordStore  *lessonRecordStore
+	chapterRecordStore *chapterRecordStore
+	lessonManager      *content.DefaultLessonManager
+	db                 *sqlx.DB
+}
+
+func NewTutorialRecordManager(db *sqlx.DB) *TutorialRecordManager {
+	return &TutorialRecordManager{
+		lessonRecordStore:  newLessonRecordStore(db),
+		chapterRecordStore: newChapterRecordStore(db),
+		lessonManager:      content.NewDefaultLessonManager(db),
+		db:                 db,
+	}
 }
 
 // Save saves a record
 func (manager *TutorialRecordManager) Save(record record) error {
 	switch r := record.(type) {
 	case LessonRecord:
-		exists, err := manager.lessonRecordStore.exists(r)
+		exists, err := manager.lessonRecordStore.exists(&r)
 		if err != nil {
 			return err
 		}
 		if exists {
-			return manager.lessonRecordStore.update(record)
+			return manager.lessonRecordStore.update(&r)
 		}
-		return manager.lessonRecordStore.save(record)
+		return manager.lessonRecordStore.save(&r)
 	case ChapterRecord:
-		err := manager.chapterRecordStore.save(r)
+		err := manager.chapterRecordStore.save(&r)
 		if err != nil {
 			return err
 		}
@@ -39,18 +56,40 @@ func (manager *TutorialRecordManager) Save(record record) error {
 	}
 }
 
+// GetNextNoncompletedLesson returns the next lesson that a User hasn't completed
+// If the User has completed all Lessons, returns a nil lesson, and returns
+// func (manager *TutorialRecordManager) GetNextNoncompletedLesson(id uid) (*content.Lesson, error) {
+// 	// completed, err := manager.lessonRecordStore
+// }
+
+// // GetNextSequentialLesson returns the next
+// // func (manager *TutorialRecordManager) GetNextLesson(id lessonID) (*content.Lesson, error) {
+// // 	return nil, nil
+// // }
+
+type MissingRequiredFieldErr struct {
+	missingFields []string
+}
+
+// func (err MissingRequiredFieldErr) error
+
 type record interface {
+	// For now might be useful to validate fields on
+	// the application side vs in the db?
+	// validate() MissingRequiredFieldErr
 }
 
 type recordStore interface {
 	save(r record) error
 	update(r record) error
 	exists(r record) (bool, error)
+	query(id lessonID, uid uid) (*record, error)
+	queryAll(uid uid) []*record
 }
 
 type ChapterRecord struct {
-	ChapterID string `db:"chapterid" json:"chapterID"`
-	UID       string `db:"uid" json:"uid"`
+	ChapterID string `json:"chapterID"`
+	UID       string `json:"uid"`
 }
 
 type chapterRecordStore struct {
@@ -177,3 +216,7 @@ func (store *lessonRecordStore) exists(record *LessonRecord) (bool, error) {
 	}
 	return count != 0, nil
 }
+
+// func (store *lessonRecordStore) query(id lessonID, uid uid) (*record, error) {
+// 	var record
+// }

@@ -152,7 +152,7 @@ func NewUserStore(db *sqlx.DB) UserStore {
 }
 
 func (store *userStore) UpdateUserByUsername(username, field, value string) error {
-	_, err := store.db.Exec("UPDATE users SET $1 = $2 WHERE username = $3", field, value, username)
+	_, err := store.db.Exec("UPDATE Users SET $1 = $2 WHERE username = $3", field, value, username)
 	if err != nil {
 		return err
 	}
@@ -187,12 +187,13 @@ func (store *userStore) Query(id string) (*User, error) {
 }
 
 func (store *userStore) Insert(user *User) error {
-	_, err := store.db.Exec(`INSERT INTO 
-		users(UID, Firstname, Lastname, 
-		Username, Email, Password, Occupation) 
+	_, err := store.db.Exec(
+		`INSERT INTO Users(UID, Firstname, Lastname, 
+			Username, Email, Password, Occupation) 
 		VALUES($1, $2, $3, $4, $5, $6, $7)`,
 		user.UID, user.FirstName, user.LastName, user.Username,
-		user.Email, user.Password, user.WhichOccupation)
+		user.Email, user.Password, user.WhichOccupation,
+	)
 	if err != nil {
 		return err
 	}

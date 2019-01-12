@@ -65,12 +65,13 @@ func (store MockUserStore) UpdateUserByUsername(username, field, value string) e
 }
 
 func addTestData() {
-	_, err := testDB.Exec(`INSERT INTO 
-		users(UID, Firstname, Lastname, 
-		Username, Email, Password, Occupation) 
+	_, err := testDB.Exec(
+		`INSERT INTO Users(UID, Firstname, Lastname, 
+			Username, Email, Password, Occupation) 
 		VALUES($1, $2, $3, $4, $5, $6, $7)`,
 		testUser.UID, testUser.FirstName, testUser.LastName, testUser.Username,
-		testUser.Email, testUser.Password, testUser.WhichOccupation)
+		testUser.Email, testUser.Password, testUser.WhichOccupation,
+	)
 	if err != nil {
 		log.Panicf("Could not add test user: %v\n", err.Error())
 	}

@@ -3,6 +3,8 @@ package content
 import (
 	"log"
 	"os"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -25,10 +27,34 @@ type Lesson struct {
 	Image              pq.StringArray `db:"image" json:"image"`
 }
 
-// // ContentStatsManager
-// type ContentStatsManager interface {
-// 	SetStatsForContent(stats *Statistic, uid, contentID string) error
-// }
+type lessons []*Lesson
+
+func (l lessons) Len() int      { return len(l) }
+func (l lessons) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
+func (l lessons) Less(i, j int) bool {
+	return comapreLessonNames(l[i], l[j])
+}
+
+// comapreLessonNames does a custom sort of []Lesson. Note that this sort
+// will only work for groups of Lessons that are all belong to the same Chapter,
+// and would not work as expected otherwise.
+func comapreLessonNames(l1 *Lesson, l2 *Lesson) bool {
+	// At the end of all but the first Chapter, the last chronological lesson
+	// in a list of Lessons for a Chapter will be of the form "Foo Test"
+	if strings.Contains(l1.LessonName, "Test") {
+		return false
+	}
+	if strings.Contains(l2.LessonName, "Test") {
+		return true
+	}
+
+	// If neither lesson has the form "Foo Test", we can use the built in string
+	// Compare which sorts them lexographically.
+	if l1.LessonName > l2.LessonName {
+		return false
+	}
+	return true
+}
 
 // DefaultLessonManager handles most of the basic operations on generic
 // Lesson objects
@@ -50,10 +76,24 @@ func NewDefaultLessonManager(db *sqlx.DB) *DefaultLessonManager {
 	}
 }
 
+// SortChrono sorts a list of Lessons chronologically
+func SortChrono(l *lessons) {
+	sort.Sort(*l)
+}
+
 // GetLesson returns a lesson by id
 func (manager *DefaultLessonManager) GetLesson(id string) (*Lesson, error) {
 	return manager.store.Query(id)
 }
+
+// GetNextLesson returns the next lesson in the sequential order the Users
+// must complete.
+// func (manager *DefaultLessonManager) GetNextLesson(id string) (*Lesson, error) {
+// 	lesson, err := manager.store.Query(id)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// }
 
 // GetLessons returns a slice to all lessons
 func (manager *DefaultLessonManager) GetLessons() ([]*Lesson, error) {

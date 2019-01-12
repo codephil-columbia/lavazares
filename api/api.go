@@ -3,41 +3,49 @@ package api
 import (
 	"lavazares/auth"
 	"lavazares/content"
+	"lavazares/records"
 
 	"github.com/gorilla/mux"
 
 	"github.com/jmoiron/sqlx"
 )
 
-var lessonManager *content.DefaultLessonManager
-var chapterManager *content.DefaultChapterManager
-var userManager *auth.DefaultUserManager
+var (
+	lessonManager         *content.DefaultLessonManager
+	chapterManager        *content.DefaultChapterManager
+	userManager           *auth.DefaultUserManager
+	tutorialRecordManager *records.TutorialRecordManager
+
+	a *API
+)
 
 const (
 	localPostgres = "port=5432 host=localhost sslmode=disable user=postgres dbname=postgres"
 )
 
-func Run() API {
-	a := API{}
-	a.initAPI()
-	return a
+func Run() *API {
+	return initAPI()
 }
 
 type API struct {
 	BaseRouter *mux.Router
 }
 
-func (a *API) initAPI() {
+func initAPI() *API {
+	a := API{}
+
 	db, err := initDB(localPostgres)
 	if err != nil {
-		return
+		return nil
 	}
 
 	lessonManager = content.NewDefaultLessonManager(db)
 	chapterManager = content.NewDefaultChapterManager(db)
 	userManager = auth.NewDefaultUserManager(auth.NewUserStore(db))
+	tutorialRecordManager = records.NewTutorialRecordManager(db)
 
-	a.BaseRouter = mux.NewRouter()
+	baseRouter := mux.NewRouter()
+	a.BaseRouter = baseRouter
 
 	lessonRouter := a.BaseRouter.PathPrefix("/lesson").Subrouter()
 	lessonRouter.HandleFunc("/", LessonsHandler)
@@ -52,6 +60,10 @@ func (a *API) initAPI() {
 	userRouter.HandleFunc("/edit/password", editPasswordHandler).Methods("POST")
 	userRouter.HandleFunc("/authenticate", authenticateHandler).Methods("POST")
 
+	recordRouter := a.BaseRouter.PathPrefix("/records").Subrouter()
+	recordRouter.HandleFunc("/tutorial", addLessonRecordHandler).Methods("POST")
+
+	return &a
 }
 
 func initDB(source string) (*sqlx.DB, error) {
@@ -60,4 +72,10 @@ func initDB(source string) (*sqlx.DB, error) {
 		return nil, err
 	}
 	return db, nil
+}
+
+func initRecordRouter() *mux.Router {
+	recordRouter := a.BaseRouter.PathPrefix("/records").Subrouter()
+	recordRouter.HandleFunc("/tutorial", addLessonRecordHandler).Methods("POST")
+	return recordRouter
 }
