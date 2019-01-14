@@ -185,6 +185,97 @@ func TestChapterRecordStoreExists(t *testing.T) {
 	removeTestChapter()
 }
 
+func TestChapterRecordStoreQueryAll(t *testing.T) {
+	cases := []struct {
+		name        string
+		uid         string
+		expected    []*ChapterRecord
+		expectedErr bool
+	}{
+		{
+			"Should be able to query all records for valid user",
+			"123",
+			[]*ChapterRecord{
+				&validChapterRecord,
+			},
+			false,
+		},
+		{
+			"Should return error for nonexistent user",
+			"321",
+			nil,
+			true,
+		},
+	}
+
+	addTestChapter()
+	addTestUser()
+	addTestChapterRecord()
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			records, err := testChapterRecordStore.queryAll(tc.uid)
+			if err != nil {
+				if !tc.expectedErr {
+					t.Errorf("Unexpected err: [%v]", err)
+				}
+			} else {
+				if !reflect.DeepEqual(records, tc.expected) {
+					t.Errorf("Expected records [%v], got [%v]", tc.expected, records)
+				}
+			}
+		})
+	}
+	removeTestChapterRecord(validChapterRecord.ChapterID)
+	removeTestUser()
+	removeTestChapter()
+}
+
+func TestChapterRecordStoreQuery(t *testing.T) {
+	cases := []struct {
+		name        string
+		id          string
+		uid         string
+		expected    ChapterRecord
+		expectedErr bool
+	}{
+		{
+			"Should be able to query existing record",
+			"2",
+			"123",
+			validChapterRecord,
+			false,
+		},
+		{
+			"Should return error for nonexistant id",
+			"9",
+			"321",
+			ChapterRecord{},
+			true,
+		},
+	}
+
+	addTestChapter()
+	addTestUser()
+	addTestChapterRecord()
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			record, err := testChapterRecordStore.query(tc.id, tc.uid)
+			if err != nil {
+				if !tc.expectedErr {
+					t.Errorf("Unexpected error [%v]", err)
+				}
+			} else {
+				if !reflect.DeepEqual(*record, tc.expected) {
+					t.Errorf("Expected record [%v], got [%v]", tc.expected, record)
+				}
+			}
+		})
+	}
+	removeTestChapterRecord(validChapterRecord.ChapterID)
+	removeTestUser()
+	removeTestChapter()
+}
+
 func TestNewLessonRecord(t *testing.T) {
 	cases := []struct {
 		name        string

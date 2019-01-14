@@ -12,7 +12,7 @@ import (
 type lessonID string
 type uid string
 
-var errUserCompletedAllLessons = errors.New("User has no uncompleted lessons")
+var errUserCompletedAllLessons = errors.New("User has no uncompleted lessons.")
 
 // TutorialRecordManager manages Tutorial Records
 // Amongst those include LessonCompleted records,
@@ -34,7 +34,7 @@ func NewTutorialRecordManager(db *sqlx.DB) *TutorialRecordManager {
 }
 
 // Save saves a record
-func (manager *TutorialRecordManager) Save(record record) error {
+func (manager *TutorialRecordManager) Save(record interface{}) error {
 	switch r := record.(type) {
 	case LessonRecord:
 		exists, err := manager.lessonRecordStore.exists(&r)
@@ -62,34 +62,37 @@ func (manager *TutorialRecordManager) Save(record record) error {
 // 	// completed, err := manager.lessonRecordStore
 // }
 
-// // GetNextSequentialLesson returns the next
-// // func (manager *TutorialRecordManager) GetNextLesson(id lessonID) (*content.Lesson, error) {
-// // 	return nil, nil
-// // }
+type tutorialRecord interface {
+	uid() string
+	id() string
+}
 
 type MissingRequiredFieldErr struct {
 	missingFields []string
 }
 
-// func (err MissingRequiredFieldErr) error
-
-type record interface {
-	// For now might be useful to validate fields on
-	// the application side vs in the db?
-	// validate() MissingRequiredFieldErr
-}
-
 type recordStore interface {
-	save(r record) error
-	update(r record) error
-	exists(r record) (bool, error)
-	query(id lessonID, uid uid) (*record, error)
-	queryAll(uid uid) []*record
+	// TODO: interface parameters should at some point not be interface
+	// its interface for now because stats are currently embedded in Lesson records
+	// future records should separate id/uid from stats(wpm/time/accuracy)
+	save(record tutorialRecord) error
+	update(record tutorialRecord) error
+	exists(record tutorialRecord) (bool, error)
+	query(id lessonID, uid uid) (tutorialRecord, error)
+	queryAll(uid uid) (tutorialRecord, error)
 }
 
 type ChapterRecord struct {
 	ChapterID string `json:"chapterID"`
 	UID       string `json:"uid"`
+}
+
+func (c ChapterRecord) uid() string {
+	return c.UID
+}
+
+func (c ChapterRecord) id() string {
+	return c.ChapterID
 }
 
 type chapterRecordStore struct {
@@ -143,12 +146,51 @@ func (store *chapterRecordStore) exists(record *ChapterRecord) (bool, error) {
 	return count != 0, nil
 }
 
+func (store *chapterRecordStore) queryAll(uid string) ([]*ChapterRecord, error) {
+	var all []*ChapterRecord
+	rows, err := store.db.Queryx("SELECT * FROM ChaptersCompleted WHERE uid = $1", uid)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		record := ChapterRecord{}
+		err = rows.StructScan(&record)
+		if err != nil {
+			rows.Close()
+			return nil, err
+		}
+		all = append(all, &record)
+	}
+
+	return all, nil
+}
+
+func (store *chapterRecordStore) query(id, uid string) (*ChapterRecord, error) {
+	var record ChapterRecord
+	err := store.db.QueryRowx(
+		"SELECT * FROM ChaptersCompleted WHERE uid = $1 AND chapterid = $2",
+		uid, id).StructScan(&record)
+	if err != nil {
+		return nil, err
+	}
+	return &record, nil
+}
+
 type LessonRecord struct {
 	LessonID  string `json:"lessonID"`
 	ChapterID string `json:"chapterID"`
 	UID       string `json:"uid"`
 	WPM       string `json:"wpm"`
 	Accuracy  string `json:"accuracy"`
+}
+
+func (l LessonRecord) uid() string {
+	return l.UID
+}
+
+func (l LessonRecord) id() string {
+	return l.LessonID
 }
 
 type lessonRecordStore struct {
@@ -216,7 +258,3 @@ func (store *lessonRecordStore) exists(record *LessonRecord) (bool, error) {
 	}
 	return count != 0, nil
 }
-
-// func (store *lessonRecordStore) query(id lessonID, uid uid) (*record, error) {
-// 	var record
-// }
