@@ -15,11 +15,13 @@ var (
 )
 
 // DefaultContentManager is in charge of stuff that depend on both
-// chapter and lesson managers ie finding the next sequential lesson/chapter,
+// chapter and lesson managers (to avoid coupling the two)
+// ie finding the next sequential lesson/chapter,
 // finding the next lesson for a User
+//
 type DefaultContentManager struct {
-	chapterManager *DefaultChapterManager
-	lessonManager  *DefaultLessonManager
+	chapterManager chapterManager
+	lessonManager  lessonManager
 	logger         *log.Logger
 }
 
@@ -78,15 +80,16 @@ func (manager *DefaultContentManager) GetNextLesson(lessonID string) (*Lesson, e
 }
 
 func (manager *DefaultContentManager) getNextChapter(chapterID string) (*Chapter, error) {
-	chapters, err := manager.chapterManager.GetChapters()
+	lst, err := manager.chapterManager.GetChapters()
 	if err != nil {
 		return nil, err
 	}
 
-	for i, chapter := range chapters {
+	sort.Sort(chapters(lst))
+	for i, chapter := range lst {
 		if chapter.ChapterID == chapterID {
-			if i < len(chapters)-1 {
-				return chapters[i+1], nil
+			if i < len(lst)-1 {
+				return lst[i+1], nil
 			}
 			return nil, errCompletedAllChapters
 		}
@@ -100,11 +103,11 @@ func (manager *DefaultContentManager) getLessonsInChapter(chapterID string) ([]*
 		return nil, err
 	}
 
-	lessonsInChapter := lessons
+	lessonsInChapter := []*Lesson{}
 	for _, lesson := range lessons {
 		if lesson.ChapterID == chapterID {
 			lessonsInChapter = append(lessonsInChapter, lesson)
 		}
 	}
-	return lessons, nil
+	return lessonsInChapter, nil
 }

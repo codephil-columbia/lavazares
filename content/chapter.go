@@ -56,6 +56,11 @@ func (manager *DefaultChapterManager) GetChapters() ([]*Chapter, error) {
 	return manager.store.QueryAll()
 }
 
+type chapterManager interface {
+	GetChapter(id string) (*Chapter, error)
+	GetChapters() ([]*Chapter, error)
+}
+
 type chapterStore struct {
 	db *sqlx.DB
 }

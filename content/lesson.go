@@ -86,18 +86,14 @@ func (manager *DefaultLessonManager) GetLesson(id string) (*Lesson, error) {
 	return manager.store.Query(id)
 }
 
-// GetNextLesson returns the next lesson in the sequential order the Users
-// must complete.
-// func (manager *DefaultLessonManager) GetNextLesson(id string) (*Lesson, error) {
-// 	lesson, err := manager.store.Query(id)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// }
-
 // GetLessons returns a slice to all lessons
 func (manager *DefaultLessonManager) GetLessons() ([]*Lesson, error) {
 	return manager.store.QueryAll()
+}
+
+type lessonManager interface {
+	GetLessons() ([]*Lesson, error)
+	GetLesson(id string) (*Lesson, error)
 }
 
 // lessonStore is the object used to interact with underlying Lesson objects
