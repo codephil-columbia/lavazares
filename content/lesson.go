@@ -118,8 +118,9 @@ func (store *lessonStore) Query(ID string) (*Lesson, error) {
 func (store *lessonStore) QueryAll() ([]*Lesson, error) {
 	var all []*Lesson
 	rows, err := store.db.Queryx("SELECT * FROM Lessons")
+	defer rows.Close()
+
 	if err != nil {
-		rows.Close()
 		return nil, err
 	}
 
@@ -127,7 +128,6 @@ func (store *lessonStore) QueryAll() ([]*Lesson, error) {
 		l := Lesson{}
 		err = rows.StructScan(&l)
 		if err != nil {
-			rows.Close()
 			return nil, err
 		}
 		all = append(all, &l)
