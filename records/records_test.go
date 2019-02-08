@@ -12,6 +12,113 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+func TestMain(m *testing.M) {
+	var err error
+	testDB, err = sqlx.Open("postgres", conn)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	testLessonRecordStore = newLessonRecordStore(testDB)
+	testChapterRecordStore = newChapterRecordStore(testDB)
+
+	os.Exit(m.Run())
+}
+
+func TestChapterIntersection(t *testing.T) {
+	cases := []struct {
+		name     string
+		records  []*ChapterRecord
+		chapters []*content.Chapter
+		expected []*content.Chapter
+	}{
+		{
+			"Should return correct intersection",
+			[]*ChapterRecord{
+				&ChapterRecord{
+					ChapterID: "2",
+				},
+				&ChapterRecord{
+					ChapterID: "3",
+				},
+			},
+			[]*content.Chapter{
+				&content.Chapter{
+					ChapterID: "2",
+				},
+				&content.Chapter{
+					ChapterID: "3",
+				},
+				&content.Chapter{
+					ChapterID: "4",
+				},
+			},
+			[]*content.Chapter{
+				&content.Chapter{
+					ChapterID: "4",
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			intersection := chapterIntersection(tc.records, tc.chapters)
+			if !reflect.DeepEqual(intersection, tc.expected) {
+				t.Errorf("Expected [%v], got [%v]", tc.expected, intersection)
+			}
+		})
+	}
+}
+
+func TestLessonIntersection(t *testing.T) {
+	cases := []struct {
+		name     string
+		records  []*LessonRecord
+		chapters []*content.Lesson
+		expected []*content.Lesson
+	}{
+		{
+			"Should return correct intersection",
+			[]*LessonRecord{
+				&LessonRecord{
+					LessonID: "2",
+				},
+				&LessonRecord{
+					LessonID: "3",
+				},
+			},
+			[]*content.Lesson{
+				&content.Lesson{
+					LessonID: "2",
+				},
+				&content.Lesson{
+					LessonID: "3",
+				},
+				&content.Lesson{
+					LessonID: "4",
+				},
+			},
+			[]*content.Lesson{
+				&content.Lesson{
+					LessonID: "4",
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			intersection := lessonIntersection(tc.records, tc.chapters)
+			if !reflect.DeepEqual(intersection, tc.expected) {
+				t.Errorf("Expected [%v], got [%v]", tc.expected, intersection)
+			}
+		})
+	}
+}
+
+// DB Tests
+
 var (
 	testDB                 *sqlx.DB
 	testLessonRecordStore  *lessonRecordStore
@@ -37,19 +144,6 @@ const (
 		dbname=postgres 
 		password=postgres`
 )
-
-func TestMain(m *testing.M) {
-	var err error
-	testDB, err = sqlx.Open("postgres", conn)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	testLessonRecordStore = newLessonRecordStore(testDB)
-	testChapterRecordStore = newChapterRecordStore(testDB)
-
-	os.Exit(m.Run())
-}
 
 func TestNewChapterRecord(t *testing.T) {
 	cases := []struct {
@@ -434,6 +528,81 @@ func TestLessonRecordStoreExists(t *testing.T) {
 			} else {
 				if tc.exists != exists {
 					t.Errorf("Exists returned [%v], expected [%v]", exists, tc.exists)
+				}
+			}
+		})
+	}
+	removeTestLessonRecord(validLessonRecord.LessonID)
+	removeTestLesson()
+}
+func TestLessonRecordStoreQuery(t *testing.T) {
+	cases := []struct {
+		name        string
+		record      *LessonRecord
+		recordID    string
+		uid         string
+		expectedErr bool
+	}{
+		{
+			"Should be able to query record for valid uid",
+			&validLessonRecord,
+			"1",
+			"123",
+			false,
+		},
+	}
+
+	addTestLesson()
+	addTestLessonRecord()
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			record, err := testLessonRecordStore.query(tc.recordID, tc.uid)
+			if err != nil {
+				if !tc.expectedErr {
+					t.Errorf("Unexpected Error: [%v]\n", err)
+				}
+			} else {
+				if record.LessonID != validLessonRecord.LessonID {
+					t.Errorf("Unexpected Lesson if id: [%v]", record.LessonID)
+				}
+			}
+		})
+	}
+	removeTestLessonRecord(validLessonRecord.LessonID)
+	removeTestLesson()
+}
+
+func TestLessonRecordStoreQueryAll(t *testing.T) {
+	cases := []struct {
+		name        string
+		all         []*LessonRecord
+		uid         string
+		expectedErr bool
+	}{
+		{
+			"Should be able to query all records for valid uid",
+			[]*LessonRecord{
+				&validLessonRecord,
+			},
+			"123",
+			false,
+		},
+	}
+
+	addTestLesson()
+	addTestLessonRecord()
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			all, err := testLessonRecordStore.queryAll(tc.uid)
+			if err != nil {
+				if !tc.expectedErr {
+					t.Errorf("Unexpected Error: [%v]\n", err)
+				}
+			} else {
+				if len(all) == 0 {
+					t.Errorf("Query-d records are empty")
+				} else if all[0].LessonID != validLessonRecord.LessonID {
+					t.Errorf("Unexpected Lesson if id: [%v]", all[0].LessonID)
 				}
 			}
 		})

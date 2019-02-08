@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -20,19 +19,15 @@ import (
 )
 
 const (
-	configPath    = "./secrets.json"
-	localPostgres = "port=1000 host=localhost sslmode=disable user=postgres dbname=postgres"
+	// connStr = "user=codephil dbname=lavazaresdb password=codephil! port=5432 host=lavazares-db1.cnodp99ehkll.us-west-2.rds.amazonaws.com sslmode=disable"
+	connStr = "port=5432 host=localhost sslmode=disable user=postgres dbname=postgres"
 )
 
 func main() {
 
-	isLocal := flag.Bool("local", false, "Env for local dev")
-	flag.Parse()
-
-	err := Init(*isLocal, configPath)
-	if err != nil {
-		fmt.Errorf(err.Error())
-		os.Exit(1)
+	if err := models.InitDB(connStr); err != nil {
+		fmt.Println(err)
+		return
 	}
 
 	router := mux.NewRouter()
@@ -107,7 +102,6 @@ func (c *Config) getDBConnString() string {
 func Init(isLocalEnv bool, configPath string) error {
 	var connStr string
 	if isLocalEnv {
-		connStr = localPostgres
 		fmt.Printf("Running local env with psql connStr %s\n", connStr)
 	} else {
 		config, err := loadFromFile(configPath)
