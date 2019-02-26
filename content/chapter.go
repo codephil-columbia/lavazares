@@ -3,6 +3,7 @@ package content
 import (
 	"log"
 	"os"
+	"sort"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -28,6 +29,11 @@ func compareChapterNames(c1 *Chapter, c2 *Chapter) bool {
 		return false
 	}
 	return true
+}
+
+// SortChaptersChrono sorts Chapters chronologically
+func SortChaptersChrono(c []*Chapter) {
+	sort.Sort(chapters(c))
 }
 
 // DefaultChapterManager provides read only access to Chapter objs

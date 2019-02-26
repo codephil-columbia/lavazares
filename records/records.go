@@ -80,7 +80,7 @@ func (manager *TutorialRecordManager) GetNextNoncompletedLesson(userid string) (
 		return nil, err
 	}
 
-	content.SortLessons(intersection)
+	content.SortLessonsChrono(intersection)
 	return intersection[0], nil
 }
 
@@ -101,8 +101,7 @@ func (manager *TutorialRecordManager) GetNextNoncompletedChapter(userid string) 
 		return nil, errors.New("User has completed all lessons")
 	}
 
-	content.SortChapters(intersection)
-
+	content.SortChaptersChrono(intersection)
 	return intersection[0], nil
 }
 

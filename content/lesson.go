@@ -76,9 +76,9 @@ func NewDefaultLessonManager(db *sqlx.DB) *DefaultLessonManager {
 	}
 }
 
-// SortChrono sorts a list of Lessons chronologically
-func SortChrono(l *lessons) {
-	sort.Sort(*l)
+// SortLessonsChrono sorts a list of Lessons chronologically
+func SortLessonsChrono(l []*Lesson) {
+	sort.Sort(lessons(l))
 }
 
 // GetLesson returns a lesson by id
