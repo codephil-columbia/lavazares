@@ -3,6 +3,7 @@ package auth
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"lavazares/utils"
 	"log"
 	"os"
@@ -31,30 +32,34 @@ type User struct {
 	WhichOccupation string     `json:"whichOccupation"`
 }
 
-const defaultUserManagerLogger = "DefaultUserManager"
+var (
+	errPasswordIncorrect = errors.New("Password was incorrect")
+)
 
-// DefaultUserManager handles operations on generic User objects
-type DefaultUserManager struct {
+const userManagerLogger = "UserManager"
+
+// UserManager handles operations on generic User objects
+type UserManager struct {
 	store  UserStore
 	logger *log.Logger
 }
 
-// NewDefaultUserManager performs operations on User objects.
+// NewUserManager performs operations on User objects.
 // It is also responsible for User authentication
-func NewDefaultUserManager(store UserStore) *DefaultUserManager {
-	return &DefaultUserManager{
+func NewUserManager(store UserStore) *UserManager {
+	return &UserManager{
 		store:  store,
-		logger: log.New(os.Stdout, defaultUserManagerLogger, log.Lshortfile),
+		logger: log.New(os.Stdout, userManagerLogger, log.Lshortfile),
 	}
 }
 
 // EditPassword changes and reshashes a Users password
-func (manager *DefaultUserManager) EditPassword(username, password string) error {
+func (manager *UserManager) EditPassword(username, password string) error {
 	user, err := manager.store.QueryByUsername(username)
 	if err != nil {
 		return err
 	}
-	newHashed, err := manager.hashPassword(user.Password)
+	newHashed, err := manager.hashPassword(password)
 	if err != nil {
 		return err
 	}
@@ -63,15 +68,20 @@ func (manager *DefaultUserManager) EditPassword(username, password string) error
 
 // Authenticate authenticates a user by checking whether there exists a username
 // password pair thats in the db. If the password and hash match, error returned is nil.
-func (manager *DefaultUserManager) Authenticate(username, password string) error {
+func (manager *UserManager) Authenticate(username, password string) (*User, error) {
 	user, err := manager.store.QueryByUsername(username)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		return nil, errPasswordIncorrect
+	}
+
+	return user, nil
 }
 
-func (manager *DefaultUserManager) removeUserByUsername(username string) error {
+func (manager *UserManager) removeUserByUsername(username string) error {
 	return manager.store.DeleteByUsername(username)
 }
 
@@ -79,17 +89,24 @@ func (manager *DefaultUserManager) removeUserByUsername(username string) error {
 // Before doing so, it will set the UID and hash the password.
 // Since the DB will make sure that all the required fields are not null,
 // we only have to check to make sure the password is set before we hash it.
-func (manager *DefaultUserManager) NewUser(args utils.RequestJSON) (*User, error) {
+func (manager *UserManager) NewUser(args utils.RequestJSON) (*User, error) {
 	var user User
 	err := json.Unmarshal(args, &user)
 	if err != nil {
 		return nil, err
 	}
 
+	// Test to see if User already exists
+	u, _ := manager.GetUserByUsername(user.Username)
+	if u != nil {
+		return nil, errors.New("User with that username already exits")
+	}
+
 	user.UID = xid.New().String()
 	if user.Password == "" {
 		return nil, errors.New("User password was empty")
 	}
+
 	hashed, err := manager.hashPassword(user.Password)
 	if err != nil {
 		return nil, err
@@ -105,15 +122,16 @@ func (manager *DefaultUserManager) NewUser(args utils.RequestJSON) (*User, error
 
 // IsUsernameValid checks to see whether a username is valid. Validity is defined
 // as no two usernames should be the same.
-func (manager *DefaultUserManager) IsUsernameValid(username string) bool {
+func (manager *UserManager) IsUsernameValid(username string) bool {
 	_, err := manager.store.QueryByUsername(username)
 	return err != nil
 }
 
-func (manager *DefaultUserManager) hashPassword(password string) (string, error) {
+func (manager *UserManager) hashPassword(password string) (string, error) {
 	if password == "" {
 		return "", errors.New("password was empty")
 	}
+
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	if err != nil {
 		return "", err
@@ -122,12 +140,12 @@ func (manager *DefaultUserManager) hashPassword(password string) (string, error)
 }
 
 // GetUser returns a User by id
-func (manager *DefaultUserManager) GetUser(id string) (*User, error) {
+func (manager *UserManager) GetUser(id string) (*User, error) {
 	return manager.store.Query(id)
 }
 
 // GetUserByUsername returns a user given a specific username
-func (manager *DefaultUserManager) GetUserByUsername(username string) (*User, error) {
+func (manager *UserManager) GetUserByUsername(username string) (*User, error) {
 	return manager.store.QueryByUsername(username)
 }
 
@@ -152,11 +170,13 @@ func NewUserStore(db *sqlx.DB) UserStore {
 }
 
 func (store *userStore) UpdateUserByUsername(username, field, value string) error {
-	_, err := store.db.Exec("UPDATE Users SET $1 = $2 WHERE username = $3", field, value, username)
-	if err != nil {
-		return err
+	var err error
+
+	switch field {
+	case "password":
+		_, err = store.db.Exec("UPDATE Users SET password = $1 WHERE username = $2", value, username)
 	}
-	return nil
+	return err
 }
 
 func (store *userStore) DeleteByUsername(username string) error {
@@ -182,11 +202,11 @@ func (store *userStore) Query(id string) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return &u, nil
 }
 
 func (store *userStore) Insert(user *User) error {
+	fmt.Println(user)
 	_, err := store.db.Exec(
 		`INSERT INTO Users(UID, Firstname, Lastname, 
 			Username, Email, Password, Occupation) 
@@ -194,6 +214,7 @@ func (store *userStore) Insert(user *User) error {
 		user.UID, user.FirstName, user.LastName, user.Username,
 		user.Email, user.Password, user.WhichOccupation,
 	)
+	fmt.Println(err)
 	if err != nil {
 		return err
 	}

@@ -31,35 +31,35 @@ func compareChapterNames(c1 *Chapter, c2 *Chapter) bool {
 	return true
 }
 
-// SortChaptersChrono sorts Chapters chronologically
+// SortChaptersChrono sorts Chapters chronologically by ChapterName
 func SortChaptersChrono(c []*Chapter) {
 	sort.Sort(chapters(c))
 }
 
-// DefaultChapterManager provides read only access to Chapter objs
-type DefaultChapterManager struct {
+// ChapterManager provides read only access to Chapter objs
+type ChapterManager struct {
 	store  *chapterStore
 	logger *log.Logger
 }
 
-const defaultChapterManagerLoggerName = "DefaultChapterManager"
+const chapterManagerLoggerName = "ChapterManager"
 
-// NewDefaultChapterManager creates a new ChapterManager
-func NewDefaultChapterManager(db *sqlx.DB) *DefaultChapterManager {
-	return &DefaultChapterManager{
+// NewChapterManager creates a new ChapterManager
+func NewChapterManager(db *sqlx.DB) *ChapterManager {
+	return &ChapterManager{
 		store:  newChapterStore(db),
-		logger: log.New(os.Stdout, defaultChapterManagerLoggerName, log.Lshortfile),
+		logger: log.New(os.Stdout, chapterManagerLoggerName, log.Lshortfile),
 	}
 }
 
 // GetChapter returns a Chapter by id
-func (manager *DefaultChapterManager) GetChapter(id string) (*Chapter, error) {
-	return manager.store.Query(id)
+func (m *ChapterManager) GetChapter(id string) (*Chapter, error) {
+	return m.store.Query(id)
 }
 
 // GetChapters returns a slice to all Chapters
-func (manager *DefaultChapterManager) GetChapters() ([]*Chapter, error) {
-	return manager.store.QueryAll()
+func (m *ChapterManager) GetChapters() ([]*Chapter, error) {
+	return m.store.QueryAll()
 }
 
 type chapterManager interface {
@@ -75,18 +75,18 @@ func newChapterStore(db *sqlx.DB) *chapterStore {
 	return &chapterStore{db: db}
 }
 
-func (store *chapterStore) Query(id string) (*Chapter, error) {
+func (s *chapterStore) Query(id string) (*Chapter, error) {
 	var c Chapter
-	err := store.db.QueryRowx("SELECT * FROM Chapter WHERE id = $1", id).StructScan(&c)
+	err := s.db.QueryRowx("SELECT * FROM Chapters WHERE id = $1", id).StructScan(&c)
 	if err != nil {
 		return nil, err
 	}
 	return &c, nil
 }
 
-func (store *chapterStore) QueryAll() ([]*Chapter, error) {
+func (s *chapterStore) QueryAll() ([]*Chapter, error) {
 	var all []*Chapter
-	rows, err := store.db.Queryx("SELECT * FROM Chapter")
+	rows, err := s.db.Queryx("SELECT * FROM Chapters")
 	defer rows.Close()
 
 	for rows.Next() {

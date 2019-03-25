@@ -56,39 +56,39 @@ func comapreLessonNames(l1 *Lesson, l2 *Lesson) bool {
 	return true
 }
 
-// DefaultLessonManager handles most of the basic operations on generic
+// LessonManager handles most of the basic operations on generic
 // Lesson objects
-// All operations on Lessons through the DefaultLessonManager for now
+// All operations on Lessons through the LessonManager for now
 // are read only
-type DefaultLessonManager struct {
+type LessonManager struct {
 	store  *lessonStore
 	logger *log.Logger
 }
 
-const defaultLessonManagerLoggerName = "DefaultLessonManager"
+const lessonManagerLoggerName = "LessonManager"
 
-// NewDefaultLessonManager creates a new DefaultLessonManager.
+// NewLessonManager creates a new LessonManager.
 // db is a pointer to the already initialized sqlx DB object
-func NewDefaultLessonManager(db *sqlx.DB) *DefaultLessonManager {
-	return &DefaultLessonManager{
+func NewLessonManager(db *sqlx.DB) *LessonManager {
+	return &LessonManager{
 		store:  newLessonStore(db),
-		logger: log.New(os.Stdout, defaultLessonManagerLoggerName, log.Lshortfile),
+		logger: log.New(os.Stdout, lessonManagerLoggerName, log.Lshortfile),
 	}
 }
 
-// SortLessonsChrono sorts a list of Lessons chronologically
+// SortLessonsChrono sorts a list of Lessons chronologically by LessonName
 func SortLessonsChrono(l []*Lesson) {
 	sort.Sort(lessons(l))
 }
 
 // GetLesson returns a lesson by id
-func (manager *DefaultLessonManager) GetLesson(id string) (*Lesson, error) {
-	return manager.store.Query(id)
+func (m *LessonManager) GetLesson(id string) (*Lesson, error) {
+	return m.store.Query(id)
 }
 
 // GetLessons returns a slice to all lessons
-func (manager *DefaultLessonManager) GetLessons() ([]*Lesson, error) {
-	return manager.store.QueryAll()
+func (m *LessonManager) GetLessons() ([]*Lesson, error) {
+	return m.store.QueryAll()
 }
 
 type lessonManager interface {
@@ -106,18 +106,18 @@ func newLessonStore(db *sqlx.DB) *lessonStore {
 	return &lessonStore{db: db}
 }
 
-func (store *lessonStore) Query(ID string) (*Lesson, error) {
+func (s *lessonStore) Query(ID string) (*Lesson, error) {
 	var l Lesson
-	err := store.db.QueryRowx("SELECT * FROM Lessons WHERE LessonID = $1", ID).StructScan(&l)
+	err := s.db.QueryRowx("SELECT * FROM Lessons WHERE LessonID = $1", ID).StructScan(&l)
 	if err != nil {
 		return nil, err
 	}
 	return &l, nil
 }
 
-func (store *lessonStore) QueryAll() ([]*Lesson, error) {
+func (s *lessonStore) QueryAll() ([]*Lesson, error) {
 	var all []*Lesson
-	rows, err := store.db.Queryx("SELECT * FROM Lessons")
+	rows, err := s.db.Queryx("SELECT * FROM Lessons")
 	defer rows.Close()
 
 	if err != nil {

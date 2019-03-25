@@ -1,8 +1,4 @@
 language: go
+
 go:
-    - "1.9.x"
-    
-before_install:
-  - mv . ../
-  - go get -u github.com/golang/dep/cmd/dep
-  - dep ensure
+  - master

@@ -22,7 +22,97 @@ func TestMain(m *testing.M) {
 	testLessonRecordStore = newLessonRecordStore(testDB)
 	testChapterRecordStore = newChapterRecordStore(testDB)
 
+	testTutorialRecordManager = NewTutorialRecordManager(testDB)
+
 	os.Exit(m.Run())
+}
+
+func TestTutorialHollisticStats(t *testing.T) {
+	cases := []struct {
+		name     string
+		uid      string
+		expected []*LessonStats
+	}{
+		{
+			"Should return valid LessonStats for valid LessonRecord",
+			"123",
+			[]*LessonStats{
+				&LessonStats{
+					ID:       "1",
+					WPM:      "100",
+					Accuracy: "100",
+					UID:      "123",
+				},
+			},
+		}, {
+			"Should throw an error when uid is invalid",
+			"1",
+			nil,
+		},
+	}
+
+	setup()
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			stats, err := testTutorialRecordManager.LessonsStats(tc.uid)
+			if err != nil {
+				t.Errorf("Unexpected error: [%v]", err)
+			}
+
+			for i, stat := range stats {
+				if !reflect.DeepEqual(*stat, *tc.expected[i]) {
+					t.Errorf(
+						"Stat values were not equal. wanted %v, got %v",
+						tc.expected[i],
+						stat,
+					)
+				}
+			}
+		})
+	}
+	clean()
+}
+
+func TestLessonStat(t *testing.T) {
+	cases := []struct {
+		name        string
+		lessonID    string
+		uid         string
+		expected    LessonStats
+		expectedErr bool
+	}{
+		{
+			"Should return valid stat",
+			"1",
+			"123",
+			LessonStats{
+				ID:       "1",
+				WPM:      "100",
+				Accuracy: "100",
+				UID:      "123",
+			},
+			false,
+		},
+	}
+
+	setup()
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			stat, err := testTutorialRecordManager.LessonStats(tc.lessonID, tc.uid)
+			if err != nil && !tc.expectedErr {
+				t.Errorf("Unexpected err: %v", err)
+			}
+
+			if !reflect.DeepEqual(*stat, tc.expected) {
+				t.Errorf(
+					"Stat values are not equal, expected %v, got %v",
+					tc.expected,
+					stat,
+				)
+			}
+		})
+	}
+	clean()
 }
 
 func TestChapterIntersection(t *testing.T) {
@@ -120,10 +210,11 @@ func TestLessonIntersection(t *testing.T) {
 // DB Tests
 
 var (
-	testDB                 *sqlx.DB
-	testLessonRecordStore  *lessonRecordStore
-	testChapterRecordStore *chapterRecordStore
-	validLessonRecord      = LessonRecord{
+	testDB                    *sqlx.DB
+	testLessonRecordStore     *lessonRecordStore
+	testChapterRecordStore    *chapterRecordStore
+	testTutorialRecordManager *TutorialRecordManager
+	validLessonRecord         = LessonRecord{
 		LessonID:  "1",
 		ChapterID: "2",
 		UID:       "123",
@@ -199,7 +290,7 @@ func TestChapterRecordStoreSave(t *testing.T) {
 			false,
 		},
 		{
-			"Should throw err when record is in valid",
+			"Should throw err when record is invalid",
 			ChapterRecord{
 				// ChapterID not valid
 				ChapterID: "456",
@@ -209,8 +300,7 @@ func TestChapterRecordStoreSave(t *testing.T) {
 		},
 	}
 
-	addTestChapter()
-	addTestUser()
+	setup()
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := testChapterRecordStore.save(&tc.record)
@@ -223,8 +313,7 @@ func TestChapterRecordStoreSave(t *testing.T) {
 			}
 		})
 	}
-	removeTestUser()
-	removeTestChapter()
+	clean()
 }
 
 func TestChapterRecordStoreExists(t *testing.T) {
@@ -611,6 +700,22 @@ func TestLessonRecordStoreQueryAll(t *testing.T) {
 	removeTestLesson()
 }
 
+func setup() {
+	addTestUser()
+	addTestChapter()
+	addTestLesson()
+	addTestChapterRecord()
+	addTestLessonRecord()
+}
+
+func clean() {
+	removeTestChapterRecord("2")
+	removeTestLessonRecord("1")
+	removeTestUser()
+	removeTestLesson()
+	removeTestChapter()
+}
+
 func addTestChapter() {
 	c := content.Chapter{ChapterID: "2"}
 	_, err := testDB.Exec(
@@ -663,15 +768,15 @@ func addTestChapterRecord() {
 	}
 }
 
-func removeTestLessonRecord(id string) {
-	_, err := testDB.Exec("DELETE FROM LessonsCompleted WHERE LessonID=$1", id)
+func removeTestLessonRecord(lessonid string) {
+	_, err := testDB.Exec("DELETE FROM LessonsCompleted WHERE LessonID=$1", lessonid)
 	if err != nil {
 		log.Fatalln(err)
 	}
 }
 
-func removeTestChapterRecord(id string) {
-	_, err := testDB.Exec("DELETE FROM ChaptersCompleted WHERE ChapterID=$1", id)
+func removeTestChapterRecord(chapterid string) {
+	_, err := testDB.Exec("DELETE FROM ChaptersCompleted WHERE ChapterID=$1", chapterid)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -679,9 +784,6 @@ func removeTestChapterRecord(id string) {
 
 func addTestLesson() {
 	l := content.Lesson{LessonID: "1", ChapterID: "2"}
-
-	addTestChapter()
-	addTestUser()
 
 	_, err := testDB.Exec(
 		`INSERT INTO Lessons(LessonID, ChapterID)

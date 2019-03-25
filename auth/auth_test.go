@@ -77,7 +77,7 @@ func addTestData() {
 	}
 }
 
-func removeTestData() {
+func removeTestData(uid string) {
 	_, err := testDB.Exec("DELETE FROM Users WHERE uid = $1", uid)
 	if err != nil {
 		log.Panicln("Could not delete tester user")
@@ -118,7 +118,11 @@ func TestNewUser(t *testing.T) {
 			}
 			_, result := defaultUserManager.NewUser(request)
 			if result != nil {
-				t.Errorf("expected %t, got %t", tc.expected, result)
+				if result.Error() != "User with that username already exits" {
+					t.Errorf("unexpected error: [%v]", result.Error())
+				}
+			} else {
+				removeTestData(tc.user.UID)
 			}
 		})
 	}
@@ -161,7 +165,7 @@ func TestQuery(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			addTestData()
-			defer removeTestData()
+			defer removeTestData(tc.id)
 
 			user, err := store.Query(tc.id)
 			if err != nil {
@@ -190,7 +194,7 @@ func TestQueryByUsername(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			addTestData()
-			defer removeTestData()
+			defer removeTestData(testUser.UID)
 
 			user, err := store.QueryByUsername(tc.username)
 			if err != nil {
@@ -259,7 +263,7 @@ func TestDeleteByUsername(t *testing.T) {
 			addTestData()
 			defer func() {
 				if tc.expectedErr {
-					removeTestData()
+					removeTestData(testUser.UID)
 				}
 			}()
 
@@ -287,7 +291,7 @@ func TestUpdateUserByUsername(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			addTestData()
-			defer removeTestData()
+			defer removeTestData(testUser.UID)
 
 			err := store.UpdateUserByUsername(tc.user.Username, tc.field, tc.value)
 			if err != nil {

@@ -14,25 +14,24 @@ var (
 	errCompletedAllChapters = errors.New("Completed all Chapters")
 )
 
-// DefaultContentManager is in charge of stuff that depend on both
+// ContentManager is in charge of stuff that depend on both
 // chapter and lesson managers (to avoid coupling the two)
 // ie finding the next sequential lesson/chapter,
 // finding the next lesson for a User
-//
-type DefaultContentManager struct {
+type ContentManager struct {
 	chapterManager chapterManager
 	lessonManager  lessonManager
 	logger         *log.Logger
 }
 
-const defaultContentManagerLogger = "DefaultContentManager"
+const contentManagerLogger = "ContentManager"
 
 // NewContentManager returns a new ContentManager
-func NewContentManager(db *sqlx.DB) *DefaultContentManager {
-	return &DefaultContentManager{
-		chapterManager: NewDefaultChapterManager(db),
-		lessonManager:  NewDefaultLessonManager(db),
-		logger:         log.New(os.Stdout, "DefaultContentManager", log.Lshortfile),
+func NewContentManager(db *sqlx.DB) *ContentManager {
+	return &ContentManager{
+		chapterManager: NewChapterManager(db),
+		lessonManager:  NewLessonManager(db),
+		logger:         log.New(os.Stdout, contentManagerLogger, log.Lshortfile),
 	}
 }
 
@@ -43,13 +42,13 @@ func NewContentManager(db *sqlx.DB) *DefaultContentManager {
 // TODO: Maybe at some point we should embed pointers to the next lesson within each
 // Lesson struct? At this point we don't have that many Lessons so it might not matter
 // too much
-func (manager *DefaultContentManager) GetNextLesson(lessonID string) (*Lesson, error) {
-	lesson, err := manager.lessonManager.GetLesson(lessonID)
+func (m *ContentManager) GetNextLesson(lessonID string) (*Lesson, error) {
+	lesson, err := m.lessonManager.GetLesson(lessonID)
 	if err != nil {
 		return nil, err
 	}
 
-	lessonsInChapter, err := manager.getLessonsInChapter(lesson.ChapterID)
+	lessonsInChapter, err := m.GetLessonsInChapter(lesson.ChapterID)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +62,7 @@ func (manager *DefaultContentManager) GetNextLesson(lessonID string) (*Lesson, e
 		}
 	}
 
-	nextChapter, err := manager.getNextChapter(lesson.ChapterID)
+	nextChapter, err := m.getNextChapter(lesson.ChapterID)
 	if err != nil {
 		if err == errCompletedAllChapters {
 			return nil, errCompletedAllLessons
@@ -71,7 +70,7 @@ func (manager *DefaultContentManager) GetNextLesson(lessonID string) (*Lesson, e
 		return nil, err
 	}
 
-	lessonsInNextChapter, err := manager.getLessonsInChapter(nextChapter.ChapterID)
+	lessonsInNextChapter, err := m.GetLessonsInChapter(nextChapter.ChapterID)
 	if err != nil {
 		return nil, err
 	}
@@ -79,8 +78,8 @@ func (manager *DefaultContentManager) GetNextLesson(lessonID string) (*Lesson, e
 	return lessonsInNextChapter[0], nil
 }
 
-func (manager *DefaultContentManager) getNextChapter(chapterID string) (*Chapter, error) {
-	lst, err := manager.chapterManager.GetChapters()
+func (m *ContentManager) getNextChapter(chapterID string) (*Chapter, error) {
+	lst, err := m.chapterManager.GetChapters()
 	if err != nil {
 		return nil, err
 	}
@@ -97,8 +96,9 @@ func (manager *DefaultContentManager) getNextChapter(chapterID string) (*Chapter
 	return nil, errors.New("Unexpected Err")
 }
 
-func (manager *DefaultContentManager) getLessonsInChapter(chapterID string) ([]*Lesson, error) {
-	lessons, err := manager.lessonManager.GetLessons()
+// GetLessonsInChapter returns a list of Lessons for a given ChapterID
+func (m *ContentManager) GetLessonsInChapter(chapterID string) ([]*Lesson, error) {
+	lessons, err := m.lessonManager.GetLessons()
 	if err != nil {
 		return nil, err
 	}

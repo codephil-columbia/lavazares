@@ -9,7 +9,9 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-var errUserCompletedAllLessons = errors.New("User has no uncompleted lessons.")
+var (
+	errUserCompletedAllLessons = errors.New("User has no uncompleted lessons")
+)
 
 // TutorialRecordManager manages Tutorial Records
 // Amongst those include LessonCompleted records,
@@ -17,36 +19,38 @@ var errUserCompletedAllLessons = errors.New("User has no uncompleted lessons.")
 type TutorialRecordManager struct {
 	lessonRecordStore  *lessonRecordStore
 	chapterRecordStore *chapterRecordStore
-	lessonManager      *content.DefaultLessonManager
-	chapterManager     *content.DefaultChapterManager
-	contentManager     *content.DefaultContentManager
+	lessonManager      *content.LessonManager
+	chapterManager     *content.ChapterManager
+	contentManager     *content.ContentManager
 	db                 *sqlx.DB
 }
 
+// NewTutorialRecordManager returns an initialized TutorialRecordManager
 func NewTutorialRecordManager(db *sqlx.DB) *TutorialRecordManager {
 	return &TutorialRecordManager{
 		lessonRecordStore:  newLessonRecordStore(db),
 		chapterRecordStore: newChapterRecordStore(db),
-		lessonManager:      content.NewDefaultLessonManager(db),
+		lessonManager:      content.NewLessonManager(db),
 		contentManager:     content.NewContentManager(db),
+		chapterManager:     content.NewChapterManager(db),
 		db:                 db,
 	}
 }
 
 // Save saves a record
-func (manager *TutorialRecordManager) Save(record interface{}) error {
+func (m *TutorialRecordManager) Save(record interface{}) error {
 	switch r := record.(type) {
 	case LessonRecord:
-		exists, err := manager.lessonRecordStore.exists(&r)
+		exists, err := m.lessonRecordStore.exists(&r)
 		if err != nil {
 			return err
 		}
 		if exists {
-			return manager.lessonRecordStore.update(&r)
+			return m.lessonRecordStore.update(&r)
 		}
-		return manager.lessonRecordStore.save(&r)
+		return m.lessonRecordStore.save(&r)
 	case ChapterRecord:
-		err := manager.chapterRecordStore.save(&r)
+		err := m.chapterRecordStore.save(&r)
 		if err != nil {
 			return err
 		}
@@ -56,21 +60,55 @@ func (manager *TutorialRecordManager) Save(record interface{}) error {
 	}
 }
 
+func (m *TutorialRecordManager) LessonStats(lessonID, uid string) (*LessonStats, error) {
+	record, err := m.lessonRecordStore.query(lessonID, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	return &LessonStats{
+		WPM:      record.WPM,
+		Accuracy: record.Accuracy,
+		ID:       record.LessonID,
+		UID:      uid,
+	}, nil
+}
+
+// TutorialHollisticStats returns hollistic stats for a User's Tutorial Records
+func (m *TutorialRecordManager) LessonsStats(uid string) ([]*LessonStats, error) {
+	records, err := m.lessonRecordStore.queryAll(uid)
+	if err != nil {
+		return nil, err
+	}
+
+	stats := []*LessonStats{}
+	for _, r := range records {
+		stats = append(stats, &LessonStats{
+			WPM:      r.WPM,
+			Accuracy: r.Accuracy,
+			ID:       r.LessonID,
+			UID:      uid,
+		})
+	}
+
+	return stats, nil
+}
+
 // GetNextNoncompletedLesson returns the next lesson that a User hasn't completed
 // If the User has completed all Lessons, returns a nil lesson, and returns
-func (manager *TutorialRecordManager) GetNextNoncompletedLesson(userid string) (*content.Lesson, error) {
+func (m *TutorialRecordManager) GetNextNoncompletedLesson(userid string) (*content.Lesson, error) {
 	// Get most recent chapter record, find the most recent lesson record in that chapter
-	currentChapter, err := manager.GetNextNoncompletedChapter(userid)
+	currentChapter, err := m.GetNextNoncompletedChapter(userid)
 	if err != nil {
 		return nil, err
 	}
 
-	lessonsInChapter, err := manager.contentManager.GetLessonsInChapter(currentChapter.ChapterID)
+	lessonsInChapter, err := m.contentManager.GetLessonsInChapter(currentChapter.ChapterID)
 	if err != nil {
 		return nil, err
 	}
 
-	completedLessons, err := manager.lessonRecordStore.queryAll(userid)
+	completedLessons, err := m.lessonRecordStore.queryAll(userid)
 	if err != nil {
 		return nil, err
 	}
@@ -85,13 +123,13 @@ func (manager *TutorialRecordManager) GetNextNoncompletedLesson(userid string) (
 }
 
 // GetNextNoncompletedChapter returns the most
-func (manager *TutorialRecordManager) GetNextNoncompletedChapter(userid string) (*content.Chapter, error) {
-	chapterRecords, err := manager.chapterRecordStore.queryAll(userid)
+func (m *TutorialRecordManager) GetNextNoncompletedChapter(userid string) (*content.Chapter, error) {
+	chapterRecords, err := m.chapterRecordStore.queryAll(userid)
 	if err != nil {
 		return nil, err
 	}
 
-	chapters, err := manager.chapterManager.GetChapters()
+	chapters, err := m.chapterManager.GetChapters()
 	if err != nil {
 		return nil, err
 	}
@@ -148,13 +186,14 @@ func lessonIntersection(records []*LessonRecord, lessons []*content.Lesson) []*c
 	return missing
 }
 
+// GetLessonRecords returns all of the LessonRecords for a User
+func (m *TutorialRecordManager) GetLessonRecords(uid string) ([]*LessonRecord, error) {
+	return m.lessonRecordStore.queryAll(uid)
+}
+
 type tutorialRecord interface {
 	uid() string
 	id() string
-}
-
-type MissingRequiredFieldErr struct {
-	missingFields []string
 }
 
 type recordStore interface {
@@ -345,11 +384,11 @@ func (store *lessonRecordStore) exists(record *LessonRecord) (bool, error) {
 	return count != 0, nil
 }
 
-func (store *lessonRecordStore) query(id, uid string) (*LessonRecord, error) {
+func (store *lessonRecordStore) query(lessonID, uid string) (*LessonRecord, error) {
 	var record LessonRecord
 	err := store.db.QueryRowx(
 		"SELECT * FROM LessonsCompleted WHERE uid = $1 AND lessonid = $2",
-		uid, id).StructScan(&record)
+		uid, lessonID).StructScan(&record)
 	if err != nil {
 		return nil, err
 	}
