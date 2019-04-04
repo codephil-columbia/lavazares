@@ -1,6 +1,7 @@
 package content
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"sort"
@@ -112,6 +113,7 @@ func (s *lessonStore) Query(ID string) (*Lesson, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(l)
 	return &l, nil
 }
 

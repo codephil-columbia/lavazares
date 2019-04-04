@@ -3,6 +3,7 @@ package records
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"lavazares/content"
 	"lavazares/utils"
 
@@ -119,6 +120,7 @@ func (m *TutorialRecordManager) GetNextNoncompletedLesson(userid string) (*conte
 	}
 
 	content.SortLessonsChrono(intersection)
+	fmt.Println(intersection[0])
 	return intersection[0], nil
 }
 
