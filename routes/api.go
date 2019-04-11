@@ -1,11 +1,13 @@
 package routes
 
 import (
+	"encoding/json"
 	"errors"
-	"fmt"
+	"io/ioutil"
 	"lavazares/auth"
 	"lavazares/content"
 	"lavazares/records"
+	"log"
 
 	"github.com/gorilla/mux"
 
@@ -18,25 +20,50 @@ var (
 	userManager           *auth.UserManager
 	tutorialRecordManager *records.TutorialRecordManager
 
-	a *API
+	app *API
 )
 
 const (
+	secrets      = "./secrets.json"
 	localConnStr = "port=5432 host=localhost sslmode=disable user=postgres dbname=postgres"
-	prodConnStr  = "user=codephil dbname=lavazaresdb password=codephil! port=5432 host=lavazares-db1.cnodp99ehkll.us-west-2.rds.amazonaws.com sslmode=disable"
 )
 
 var (
 	errMissingUID = errors.New("Missing UID")
 )
 
+type productionCredentials struct {
+	ProductionDB string `json:"productionDB"`
+}
+
 // Run initializes the App
 func Run(isLocal bool) *API {
-	fmt.Println("is local", isLocal)
 	if isLocal {
 		return initAPI(localConnStr)
 	}
-	return initAPI(prodConnStr)
+
+	log.Println("Running with production db! :)")
+	productionCredentials, err := getProductionCredentials(secrets)
+	if err != nil {
+		return nil
+	}
+
+	return initAPI(productionCredentials.ProductionDB)
+}
+
+func getProductionCredentials(path string) (*productionCredentials, error) {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	productionCredentials := productionCredentials{}
+	err = json.Unmarshal(data, &productionCredentials)
+	if err != nil {
+		return nil, err
+	}
+
+	return &productionCredentials, nil
 }
 
 // API holds information about the currently running app
@@ -45,7 +72,7 @@ type API struct {
 }
 
 func initAPI(connStr string) *API {
-	a := API{}
+	app := API{}
 
 	db, err := initDB(connStr)
 	if err != nil {
@@ -58,34 +85,34 @@ func initAPI(connStr string) *API {
 	tutorialRecordManager = records.NewTutorialRecordManager(db)
 
 	baseRouter := mux.NewRouter()
-	a.BaseRouter = baseRouter
+	app.BaseRouter = baseRouter
 
-	lessonRouter := a.BaseRouter.PathPrefix("/lesson").Subrouter()
+	lessonRouter := app.BaseRouter.PathPrefix("/lesson").Subrouter()
 	lessonRouter.HandleFunc("/", LessonsHandler)
 	lessonRouter.HandleFunc("/{id}", LessonHandler)
 	lessonRouter.HandleFunc("/current/{uid}", getNextNonCompletedLesson)
 
-	chapterRouter := a.BaseRouter.PathPrefix("/chapter").Subrouter()
+	chapterRouter := app.BaseRouter.PathPrefix("/chapter").Subrouter()
 	chapterRouter.HandleFunc("/{id}", ChapterHandler)
 	chapterRouter.HandleFunc("/", ChaptersHandler)
 	chapterRouter.HandleFunc("/current/{uid}", getNextNonCompletedChapter)
 
-	userRouter := a.BaseRouter.PathPrefix("/user").Subrouter()
+	userRouter := app.BaseRouter.PathPrefix("/user").Subrouter()
 	userRouter.HandleFunc("/", newUserHandler).Methods("POST")
 	userRouter.HandleFunc("/edit/password", editPasswordHandler).Methods("POST")
 	userRouter.HandleFunc("/authenticate", authenticateHandler).Methods("POST")
 
-	recordRouter := a.BaseRouter.PathPrefix("/records").Subrouter()
+	recordRouter := app.BaseRouter.PathPrefix("/records").Subrouter()
 
 	tutorialRouter := recordRouter.PathPrefix("/tutorial").Subrouter()
-	tutorialRouter.HandleFunc("/lesson", addLessonRecordHandler).Methods("POST")
+	// tutorialRouter.HandleFunc("/lesson", addLessonRecordHandler).Methods("POST")
 	tutorialRouter.HandleFunc("/lessons/{uid}", getLessonRecordsForUserHandler)
 
-	statsRouter := a.BaseRouter.PathPrefix("/stats").Subrouter()
+	statsRouter := app.BaseRouter.PathPrefix("/stats").Subrouter()
 	statsRouter.HandleFunc("/tutorial/lesson/{uid}", getTutorialHollisticLessonStatsHandler)
 	statsRouter.HandleFunc("/tutorial/lesson/{lessonid}/{uid}", getTutorialLessonStatsHandler)
 
-	return &a
+	return &app
 }
 
 func initDB(source string) (*sqlx.DB, error) {
