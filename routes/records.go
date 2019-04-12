@@ -2,35 +2,33 @@ package routes
 
 import (
 	"encoding/json"
-	"lavazares/records"
-	"lavazares/utils"
 	"net/http"
 
 	"github.com/gorilla/mux"
 )
 
-func addLessonRecordHandler(w http.ResponseWriter, r *http.Request) {
-	data, err := utils.ReadBody(r.Body)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+// func addLessonRecordHandler(w http.ResponseWriter, r *http.Request) {
+// 	data, err := utils.ReadBody(r.Body)
+// 	if err != nil {
+// 		http.Error(w, err.Error(), http.StatusBadRequest)
+// 		return
+// 	}
 
-	record, err := records.NewLessonRecord(data)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+// 	record, err := records.NewLessonRecord(data)
+// 	if err != nil {
+// 		http.Error(w, err.Error(), http.StatusBadRequest)
+// 		return
+// 	}
 
-	err = tutorialRecordManager.Save(record)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+// 	err = tutorialRecordManager.Save(record)
+// 	if err != nil {
+// 		http.Error(w, err.Error(), http.StatusBadRequest)
+// 		return
+// 	}
 
-	w.WriteHeader(200)
-	return
-}
+// 	w.WriteHeader(200)
+// 	return
+// }
 
 func getNextNonCompletedLesson(w http.ResponseWriter, r *http.Request) {
 	uid, ok := mux.Vars(r)["uid"]

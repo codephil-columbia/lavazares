@@ -3,7 +3,6 @@ package records
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"lavazares/content"
 	"lavazares/utils"
 
@@ -38,29 +37,7 @@ func NewTutorialRecordManager(db *sqlx.DB) *TutorialRecordManager {
 	}
 }
 
-// Save saves a record
-func (m *TutorialRecordManager) Save(record interface{}) error {
-	switch r := record.(type) {
-	case LessonRecord:
-		exists, err := m.lessonRecordStore.exists(&r)
-		if err != nil {
-			return err
-		}
-		if exists {
-			return m.lessonRecordStore.update(&r)
-		}
-		return m.lessonRecordStore.save(&r)
-	case ChapterRecord:
-		err := m.chapterRecordStore.save(&r)
-		if err != nil {
-			return err
-		}
-		return nil
-	default:
-		return nil
-	}
-}
-
+// LessonStats returns stats on a User's individual lesson
 func (m *TutorialRecordManager) LessonStats(lessonID, uid string) (*LessonStats, error) {
 	record, err := m.lessonRecordStore.query(lessonID, uid)
 	if err != nil {
@@ -75,7 +52,7 @@ func (m *TutorialRecordManager) LessonStats(lessonID, uid string) (*LessonStats,
 	}, nil
 }
 
-// TutorialHollisticStats returns hollistic stats for a User's Tutorial Records
+// LessonsStats returns holistic stats for a User's Tutorial Records
 func (m *TutorialRecordManager) LessonsStats(uid string) ([]*LessonStats, error) {
 	records, err := m.lessonRecordStore.queryAll(uid)
 	if err != nil {
@@ -120,7 +97,6 @@ func (m *TutorialRecordManager) GetNextNoncompletedLesson(userid string) (*conte
 	}
 
 	content.SortLessonsChrono(intersection)
-	fmt.Println(intersection[0])
 	return intersection[0], nil
 }
 
@@ -193,33 +169,10 @@ func (m *TutorialRecordManager) GetLessonRecords(uid string) ([]*LessonRecord, e
 	return m.lessonRecordStore.queryAll(uid)
 }
 
-type tutorialRecord interface {
-	uid() string
-	id() string
-}
-
-type recordStore interface {
-	// TODO: interface parameters should at some point not be interface
-	// its interface for now because stats are currently embedded in Lesson records
-	// future records should separate id/uid from stats(wpm/time/accuracy)
-	save(record tutorialRecord) error
-	update(record tutorialRecord) error
-	exists(record tutorialRecord) (bool, error)
-	query(id string, uid string) (tutorialRecord, error)
-	queryAll(uid string) (tutorialRecord, error)
-}
-
+// ChapterRecord represents a User finishing a specific chapter
 type ChapterRecord struct {
 	ChapterID string `json:"chapterID"`
 	UID       string `json:"uid"`
-}
-
-func (c ChapterRecord) uid() string {
-	return c.UID
-}
-
-func (c ChapterRecord) id() string {
-	return c.ChapterID
 }
 
 type chapterRecordStore struct {
@@ -304,20 +257,15 @@ func (store *chapterRecordStore) query(id, uid string) (*ChapterRecord, error) {
 	return &record, nil
 }
 
+// LessonRecord represents a User finishing a specific Lesson
+// Note that this struct also contains information on per Lesson
+// User typing statistics
 type LessonRecord struct {
 	LessonID  string `json:"lessonID"`
 	ChapterID string `json:"chapterID"`
 	UID       string `json:"uid"`
 	WPM       string `json:"wpm"`
 	Accuracy  string `json:"accuracy"`
-}
-
-func (l LessonRecord) uid() string {
-	return l.UID
-}
-
-func (l LessonRecord) id() string {
-	return l.LessonID
 }
 
 type lessonRecordStore struct {
