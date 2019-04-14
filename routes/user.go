@@ -67,6 +67,7 @@ func authenticateHandler(w http.ResponseWriter, r *http.Request) {
 
 	user, err := userManager.Authenticate(username, password)
 	if err != nil {
+		// Make sure not send stack errors
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

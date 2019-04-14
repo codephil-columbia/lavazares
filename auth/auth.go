@@ -3,7 +3,6 @@ package auth
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"lavazares/utils"
 	"log"
 	"os"
@@ -206,7 +205,6 @@ func (store *userStore) Query(id string) (*User, error) {
 }
 
 func (store *userStore) Insert(user *User) error {
-	fmt.Println(user)
 	_, err := store.db.Exec(
 		`INSERT INTO Users(UID, Firstname, Lastname, 
 			Username, Email, Password, Occupation) 
@@ -214,7 +212,6 @@ func (store *userStore) Insert(user *User) error {
 		user.UID, user.FirstName, user.LastName, user.Username,
 		user.Email, user.Password, user.WhichOccupation,
 	)
-	fmt.Println(err)
 	if err != nil {
 		return err
 	}

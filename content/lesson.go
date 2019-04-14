@@ -1,7 +1,6 @@
 package content
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"sort"
@@ -14,7 +13,6 @@ import (
 )
 
 // Lesson stores information about a specific lesson
-// Most lessons have been hardcoded atm.
 type Lesson struct {
 	LessonID           string         `db:"lessonid" json:"lessonID"`
 	CreatedAt          time.Time      `db:"createdat" json:"createdAt"`
@@ -25,7 +23,7 @@ type Lesson struct {
 	LessonDescriptions pq.StringArray `db:"lessondescriptions" json:"lessonDescriptions"`
 	MinimumScoreToPass pq.Int64Array  `db:"minimumscoretopass" json:"minimumScoreToPass"`
 	ChapterID          string         `db:"chapterid" json:"chapterID"`
-	Image              pq.StringArray `db:"image" json:"image"`
+	Image              pq.StringArray `db:"image" json:"lessonImages"`
 }
 
 type lessons []*Lesson
@@ -57,10 +55,7 @@ func comapreLessonNames(l1 *Lesson, l2 *Lesson) bool {
 	return true
 }
 
-// LessonManager handles most of the basic operations on generic
-// Lesson objects
-// All operations on Lessons through the LessonManager for now
-// are read only
+// LessonManager handles operations on tutorial lessons
 type LessonManager struct {
 	store  *lessonStore
 	logger *log.Logger
@@ -113,7 +108,6 @@ func (s *lessonStore) Query(ID string) (*Lesson, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(l)
 	return &l, nil
 }
 
