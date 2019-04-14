@@ -7,37 +7,38 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// LessonHandler corresponds to GET /lesson/{id}
-func LessonHandler(w http.ResponseWriter, r *http.Request) {
+// ChapterHandler corresponds to GET /chapter/{id}
+func ChapterHandler(w http.ResponseWriter, r *http.Request) {
 	id, ok := mux.Vars(r)["id"]
 	if !ok {
 		http.Error(w, "id not found in request", http.StatusBadRequest)
 		return
 	}
 
-	lesson, err := lessonManager.GetLesson(id)
+	chapter, err := chapterManager.GetChapter(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	err = utils.SendJSON(lesson, w)
+	err = utils.SendJSON(chapter, w)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 }
 
-// LessonsHandler corresponds to GET /lesson
-func LessonsHandler(w http.ResponseWriter, r *http.Request) {
-	lessons, err := lessonManager.GetLessons()
+// ChaptersHandler corresponds to GET /chapter
+func ChaptersHandler(w http.ResponseWriter, r *http.Request) {
+	chapters, err := chapterManager.GetChapters()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	err = utils.SendJSON(lessons, w)
+	err = utils.SendJSON(chapters, w)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }

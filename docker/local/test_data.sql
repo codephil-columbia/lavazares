@@ -2,7 +2,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE FUNCTION start() RETURNS void AS $$
     DECLARE
-        chapter_0 TEXT := uuid_generate_v4();
+        chapter_0 TEXT := 'e6a18785-98c5-41bc-ad98-ec5d3a243d15';
         chapter_1 TEXT := uuid_generate_v4();
         chapter_2 TEXT := uuid_generate_v4();
         chapter_3 TEXT := uuid_generate_v4();
@@ -49,13 +49,13 @@ CREATE FUNCTION start() RETURNS void AS $$
             SET chapterimage = 'images/chapters/chapter6.svg'
             WHERE chapterid = chapter_6;
 
-            # Chapter 0
+            -- Chapter 0 --
 
             INSERT INTO lessons (lessonname, lessontext, lessonid, chapterid, minimumscoretopass, lessondescriptions, image)
             VALUES
                 ('Lesson 1: The Importance of Touch Typing', 
                     '{"Typing faster with better accuracy will help you increase your productivity.", "In this tutorial, you will learn how to touch type. Touch typing is typing without looking at the keyboard to find the keys. If you master touch typing, you will remember the location of keys on the keyboard through muscle memory.", "Touch typing will allow you to type faster with accuracy, increase productivity, and decrease fatigue. Typing can be difficult mentally and physically without touch typing. But learning how to touch type can make typing more enjoyable!"}', 
-                    uuid_generate_v4(), 
+                    'd3f9c2a3-1edf-42a6-a24d-3a4ad4683036', 
                     chapter_0, 
                     '{0,0,0}', 
                     '{"","",""}', 
@@ -119,7 +119,7 @@ CREATE FUNCTION start() RETURNS void AS $$
                 ;
 
 
-            # Chapter 1
+            -- Chapter 1 --
             INSERT INTO lessons (lessonname, lessontext, lessonid, chapterid, minimumscoretopass, lessondescriptions, image)
             VALUES
                 ('Lesson 1: Introduction', 
@@ -187,7 +187,7 @@ CREATE FUNCTION start() RETURNS void AS $$
                 ;
 
 
-            # Chapter 2
+            -- Chapter 2 --
             INSERT INTO lessons (lessonname, lessontext, lessonid, chapterid, minimumscoretopass, lessondescriptions, image)
             VALUES
                 ('Lesson 1: Introduction', 
@@ -277,7 +277,7 @@ CREATE FUNCTION start() RETURNS void AS $$
                 ;
 
 
-            # Chapter 3
+            -- Chapter 3 --
             INSERT INTO lessons (lessonname, lessontext, lessonid, chapterid, minimumscoretopass, lessondescriptions, image)
             VALUES
                 ('Lesson 1: Introduction', 
@@ -334,7 +334,7 @@ CREATE FUNCTION start() RETURNS void AS $$
                 ;
 
 
-            # Chapter 4
+            -- Chapter 4 --
             INSERT INTO lessons (lessonname, lessontext, lessonid, chapterid, minimumscoretopass, lessondescriptions, image)
             VALUES
                 ('Lesson 1: Introduction', 
@@ -391,7 +391,7 @@ CREATE FUNCTION start() RETURNS void AS $$
                 ;
 
 
-            # Chapter 5
+            -- Chapter 5 --
             INSERT INTO lessons (lessonname, lessontext, lessonid, chapterid, minimumscoretopass, lessondescriptions, image)
             VALUES
                 ('Lesson 1: Introduction', 
@@ -459,7 +459,7 @@ CREATE FUNCTION start() RETURNS void AS $$
                 ;
 
 
-            # Chapter 6
+            -- Chapter 6 --
             INSERT INTO lessons (lessonname, lessontext, lessonid, chapterid, minimumscoretopass, lessondescriptions, image)
             VALUES
                 ('Lesson 1: Introduction', 
@@ -503,24 +503,7 @@ CREATE FUNCTION start() RETURNS void AS $$
                     '{"","","Three-fourths of the earth is covered with water. In fact, there is around 1,260,000,000,000,000,000,000 liters of water in our world. When astronauts first saw the planet from space, they could mostly see water, so they called it the ‘Blue Planet’.","The deepest known area of the earth’s oceans is known as the Mariana Trench. Its deepest point measures 11km. That’s a long dive down! Because it is so deep and difficult to travel to, more people have been to the moon than have explored the Mariana Trench!","While there are countless marine life forms known to man, there are many that have yet been discovered. Some scientists suggest that there could actually be millions of marine life forms out there.","The Pacific Ocean is the world’s largest body of water. Its area covers at least one-third of the total surface area of the earth. It’s so large that it covers more area than all land masses of the world combined! It is also home to some 25,000 islands.","There’s a huge “island” of trash floating around the northern area of the Pacific Ocean right now. It is called the Great Pacific Garbage patch. This plastic garbage island floats inside the center of the Pacific’s rotating ocean current."}', 
                     '{"","","","","","",""}')
                 ;
-
-
-
-
-            INSERT INTO Users(Username, Password, Email, UID, Occupation, FirstName, LastName) 
-            VALUES('tester', '123', 'tester@gmail.com', '12345', 'Student', 'Tester', 'Tester');
-
-            INSERT INTO Students(Gender, DOB, CurrentLessonID, CurrentChapterID, CurrentChapterName, UID)
-            VALUES('Male', '10/27/1997', 
-            'd3f9c2a3-1edf-42a6-a24d-3a4ad4683036', chapter_0,
-            'Chapter 0: The Basics', '12345');
-
-            INSERT INTO Pupils(SchoolYear, UID) VALUES('1st Grade', '12345');
     END;
 $$ LANGUAGE plpgsql;
-
--- DO $$ BEGIN
---     PERFORM start();
--- END $$;
 
 SELECT start();
