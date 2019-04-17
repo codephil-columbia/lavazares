@@ -13,6 +13,9 @@ var (
 	errUserCompletedAllLessons = errors.New("User has no uncompleted lessons")
 )
 
+type Record interface {
+}
+
 // TutorialRecordManager manages Tutorial Records
 // Amongst those include LessonCompleted records,
 // ChapterCompleted records.
@@ -35,6 +38,17 @@ func NewTutorialRecordManager(db *sqlx.DB) *TutorialRecordManager {
 		chapterManager:     content.NewChapterManager(db),
 		db:                 db,
 	}
+}
+
+func (m *TutorialRecordManager) save(r Record) error {
+	var err error
+	switch record := r.(type) {
+	case LessonRecord:
+		err = m.lessonRecordStore.save(&record)
+	case ChapterRecord:
+		err = m.chapterRecordStore.save(&record)
+	}
+	return err
 }
 
 // LessonStats returns stats on a User's individual lesson
@@ -167,6 +181,10 @@ func lessonIntersection(records []*LessonRecord, lessons []*content.Lesson) []*c
 // GetLessonRecords returns all of the LessonRecords for a User
 func (m *TutorialRecordManager) GetLessonRecords(uid string) ([]*LessonRecord, error) {
 	return m.lessonRecordStore.queryAll(uid)
+}
+
+type recordSaver interface {
+	save() error
 }
 
 // ChapterRecord represents a User finishing a specific chapter
