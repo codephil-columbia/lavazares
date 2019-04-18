@@ -2,33 +2,45 @@ package routes
 
 import (
 	"encoding/json"
+	"lavazares/records"
+	"lavazares/utils"
 	"net/http"
 
 	"github.com/gorilla/mux"
 )
 
-// func addLessonRecordHandler(w http.ResponseWriter, r *http.Request) {
-// 	data, err := utils.ReadBody(r.Body)
-// 	if err != nil {
-// 		http.Error(w, err.Error(), http.StatusBadRequest)
-// 		return
-// 	}
+func saveTutorialRecord(w http.ResponseWriter, r *http.Request) {
+	data, err := utils.ReadBodyToMap(r.Body)
+	if err != nil {
+		http.Error(w, errInvalidBody.Error(), http.StatusBadRequest)
+		return
+	}
 
-// 	record, err := records.NewLessonRecord(data)
-// 	if err != nil {
-// 		http.Error(w, err.Error(), http.StatusBadRequest)
-// 		return
-// 	}
+	typ, ok := data["type"]
+	if !ok {
+		http.Error(w, missingRequiredFieldErr{typ}.Error(), http.StatusBadRequest)
+		return
+	}
 
-// 	err = tutorialRecordManager.Save(record)
-// 	if err != nil {
-// 		http.Error(w, err.Error(), http.StatusBadRequest)
-// 		return
-// 	}
+	json, err := utils.ReadBody(r.Body)
+	if err != nil {
+		http.Error(w, errInvalidBody.Error(), http.StatusBadRequest)
+		return
+	}
 
-// 	w.WriteHeader(200)
-// 	return
-// }
+	var record records.Record
+	if typ == "chapter" {
+		record, err = records.NewChapterRecord(json)
+	} else {
+		record, err = records.NewLessonRecord(json)
+	}
+
+	err = tutorialRecordManager.Save(record)
+	if err != nil {
+		http.Error(w, "Could not save record", http.StatusInternalServerError)
+		return
+	}
+}
 
 func getNextNonCompletedLesson(w http.ResponseWriter, r *http.Request) {
 	uid, ok := mux.Vars(r)["uid"]

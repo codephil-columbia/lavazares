@@ -40,7 +40,8 @@ func NewTutorialRecordManager(db *sqlx.DB) *TutorialRecordManager {
 	}
 }
 
-func (m *TutorialRecordManager) save(r Record) error {
+// Save saves a tutorial record to a database
+func (m *TutorialRecordManager) Save(r Record) error {
 	var err error
 	switch record := r.(type) {
 	case LessonRecord:
