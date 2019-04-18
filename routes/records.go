@@ -4,41 +4,54 @@ import (
 	"encoding/json"
 	"lavazares/records"
 	"lavazares/utils"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
 )
 
 func saveTutorialRecord(w http.ResponseWriter, r *http.Request) {
-	data, err := utils.ReadBodyToMap(r.Body)
-	if err != nil {
-		http.Error(w, errInvalidBody.Error(), http.StatusBadRequest)
-		return
-	}
-
-	typ, ok := data["type"]
+	typ, ok := mux.Vars(r)["type"]
 	if !ok {
-		http.Error(w, missingRequiredFieldErr{typ}.Error(), http.StatusBadRequest)
+		http.Error(w, errInvalidBody.Error(), http.StatusBadRequest)
 		return
 	}
 
 	json, err := utils.ReadBody(r.Body)
 	if err != nil {
+		log.Println(err)
 		http.Error(w, errInvalidBody.Error(), http.StatusBadRequest)
 		return
 	}
 
-	var record records.Record
 	if typ == "chapter" {
-		record, err = records.NewChapterRecord(json)
-	} else {
-		record, err = records.NewLessonRecord(json)
-	}
+		chapterRecord, err := records.NewChapterRecord(json)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Error reading chapter record", http.StatusInternalServerError)
+			return
+		}
 
-	err = tutorialRecordManager.Save(record)
-	if err != nil {
-		http.Error(w, "Could not save record", http.StatusInternalServerError)
-		return
+		err = tutorialRecordManager.SaveChapterRecord(chapterRecord)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Error saving chapter record", http.StatusInternalServerError)
+			return
+		}
+	} else if typ == "lesson" {
+		lessonRecord, err := records.NewLessonRecord(json)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Error reading lesson record", http.StatusInternalServerError)
+			return
+		}
+
+		err = tutorialRecordManager.SaveLessonRecord(lessonRecord)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Error saving lesson record", http.StatusInternalServerError)
+			return
+		}
 	}
 }
 

@@ -40,16 +40,12 @@ func NewTutorialRecordManager(db *sqlx.DB) *TutorialRecordManager {
 	}
 }
 
-// Save saves a tutorial record to a database
-func (m *TutorialRecordManager) Save(r Record) error {
-	var err error
-	switch record := r.(type) {
-	case LessonRecord:
-		err = m.lessonRecordStore.save(&record)
-	case ChapterRecord:
-		err = m.chapterRecordStore.save(&record)
-	}
-	return err
+func (m *TutorialRecordManager) SaveLessonRecord(record *LessonRecord) error {
+	return m.lessonRecordStore.save(record)
+}
+
+func (m *TutorialRecordManager) SaveChapterRecord(record *ChapterRecord) error {
+	return m.chapterRecordStore.save(record)
 }
 
 // LessonStats returns stats on a User's individual lesson
@@ -285,6 +281,7 @@ type LessonRecord struct {
 	UID       string `json:"uid"`
 	WPM       string `json:"wpm"`
 	Accuracy  string `json:"accuracy"`
+	Type      string `json:"type"`
 }
 
 type lessonRecordStore struct {
@@ -307,6 +304,14 @@ func NewLessonRecord(args utils.RequestJSON) (*LessonRecord, error) {
 }
 
 func (store *lessonRecordStore) save(record *LessonRecord) error {
+	if record.Accuracy == "" {
+		record.Accuracy = "0"
+	}
+
+	if record.WPM == "" {
+		record.WPM = "0"
+	}
+
 	_, err := store.db.Exec(
 		`INSERT INTO 
 		LessonsCompleted(LessonID, UID, WPM, Accuracy, ChapterID)

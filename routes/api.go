@@ -84,8 +84,7 @@ func initAPI(connStr string) *API {
 	userManager = auth.NewUserManager(auth.NewUserStore(db))
 	tutorialRecordManager = records.NewTutorialRecordManager(db)
 
-	baseRouter := mux.NewRouter()
-	app.BaseRouter = baseRouter
+	app.BaseRouter = mux.NewRouter()
 
 	lessonRouter := app.BaseRouter.PathPrefix("/lesson").Subrouter()
 	lessonRouter.HandleFunc("/", LessonsHandler)
@@ -106,7 +105,7 @@ func initAPI(connStr string) *API {
 
 	tutorialRouter := recordRouter.PathPrefix("/tutorial").Subrouter()
 	tutorialRouter.HandleFunc("/lessons/{uid}", getLessonRecordsForUserHandler)
-	tutorialRouter.HandleFunc("/save", saveTutorialRecord).Methods("POST")
+	tutorialRouter.HandleFunc("/save/{type}", saveTutorialRecord).Methods("POST")
 
 	statsRouter := app.BaseRouter.PathPrefix("/stats").Subrouter()
 	statsRouter.HandleFunc("/tutorial/lesson/{uid}", getTutorialHollisticLessonStatsHandler)
