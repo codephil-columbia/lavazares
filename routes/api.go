@@ -105,8 +105,8 @@ func initAPI(connStr string) *API {
 	recordRouter := app.BaseRouter.PathPrefix("/records").Subrouter()
 
 	tutorialRouter := recordRouter.PathPrefix("/tutorial").Subrouter()
-	// tutorialRouter.HandleFunc("/lesson", addLessonRecordHandler).Methods("POST")
 	tutorialRouter.HandleFunc("/lessons/{uid}", getLessonRecordsForUserHandler)
+	tutorialRouter.HandleFunc("/save", saveTutorialRecord).Methods("POST")
 
 	statsRouter := app.BaseRouter.PathPrefix("/stats").Subrouter()
 	statsRouter.HandleFunc("/tutorial/lesson/{uid}", getTutorialHollisticLessonStatsHandler)
