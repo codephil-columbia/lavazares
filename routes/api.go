@@ -30,6 +30,7 @@ const (
 
 var (
 	errMissingUID = errors.New("Missing UID")
+	errBadJSON    = errors.New("Could not read json")
 )
 
 type productionCredentials struct {
@@ -105,7 +106,7 @@ func initAPI(connStr string) *API {
 
 	tutorialRouter := recordRouter.PathPrefix("/tutorial").Subrouter()
 	tutorialRouter.HandleFunc("/lessons/{uid}", getLessonRecordsForUserHandler)
-	tutorialRouter.HandleFunc("/save/{type}", saveTutorialRecord).Methods("POST")
+	tutorialRouter.HandleFunc("/save/", saveTutorialRecord).Methods("POST")
 
 	statsRouter := app.BaseRouter.PathPrefix("/stats").Subrouter()
 	statsRouter.HandleFunc("/tutorial/lesson/{uid}", getTutorialHollisticLessonStatsHandler)

@@ -13,7 +13,9 @@ var (
 	errUserCompletedAllLessons = errors.New("User has no uncompleted lessons")
 )
 
-type Record interface {
+// Save saves a record using a record saver
+func Save(saver recordSaver, record interface{}) error {
+	return saver.save(record)
 }
 
 // TutorialRecordManager manages Tutorial Records
@@ -40,11 +42,22 @@ func NewTutorialRecordManager(db *sqlx.DB) *TutorialRecordManager {
 	}
 }
 
-func (m *TutorialRecordManager) SaveLessonRecord(record *LessonRecord) error {
+func (m *TutorialRecordManager) save(record interface{}) error {
+	switch rec := record.(type) {
+	case *ChapterRecord:
+		return m.saveChapterRecord(rec)
+	case *LessonRecord:
+		return m.saveLessonRecord(rec)
+	default:
+		return errors.New("passed in unreconizable tutorial record")
+	}
+}
+
+func (m *TutorialRecordManager) saveLessonRecord(record *LessonRecord) error {
 	return m.lessonRecordStore.save(record)
 }
 
-func (m *TutorialRecordManager) SaveChapterRecord(record *ChapterRecord) error {
+func (m *TutorialRecordManager) saveChapterRecord(record *ChapterRecord) error {
 	return m.chapterRecordStore.save(record)
 }
 
@@ -181,7 +194,7 @@ func (m *TutorialRecordManager) GetLessonRecords(uid string) ([]*LessonRecord, e
 }
 
 type recordSaver interface {
-	save() error
+	save(record interface{}) error
 }
 
 // ChapterRecord represents a User finishing a specific chapter
@@ -281,7 +294,6 @@ type LessonRecord struct {
 	UID       string `json:"uid"`
 	WPM       string `json:"wpm"`
 	Accuracy  string `json:"accuracy"`
-	Type      string `json:"type"`
 }
 
 type lessonRecordStore struct {
