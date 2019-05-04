@@ -3,6 +3,7 @@ package routes
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"lavazares/auth"
 	"lavazares/content"
@@ -28,6 +29,16 @@ const (
 	localConnStr = "port=5432 host=localhost sslmode=disable user=postgres dbname=postgres"
 )
 
+type (
+	errMissingPathVar struct {
+		MissingVar string
+	}
+)
+
+func (err errMissingPathVar) Error() string {
+	return fmt.Sprintf("Missing path var %v", err.MissingVar)
+}
+
 var (
 	errMissingUID = errors.New("Missing UID")
 	errBadJSON    = errors.New("Could not read json")
@@ -40,6 +51,7 @@ type productionCredentials struct {
 // Run initializes the App
 func Run(isLocal bool) *API {
 	if isLocal {
+		log.Println("Running local db!")
 		return initAPI(localConnStr)
 	}
 
@@ -106,7 +118,7 @@ func initAPI(connStr string) *API {
 
 	tutorialRouter := recordRouter.PathPrefix("/tutorial").Subrouter()
 	tutorialRouter.HandleFunc("/lessons/{uid}", getLessonRecordsForUserHandler)
-	tutorialRouter.HandleFunc("/save/", saveTutorialRecord).Methods("POST")
+	tutorialRouter.HandleFunc("/save/{type}", saveTutorialRecord).Methods("POST")
 
 	statsRouter := app.BaseRouter.PathPrefix("/stats").Subrouter()
 	statsRouter.HandleFunc("/tutorial/lesson/{uid}", getTutorialHollisticLessonStatsHandler)

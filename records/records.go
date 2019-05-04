@@ -44,10 +44,10 @@ func NewTutorialRecordManager(db *sqlx.DB) *TutorialRecordManager {
 
 func (m *TutorialRecordManager) save(record interface{}) error {
 	switch rec := record.(type) {
-	case *ChapterRecord:
-		return m.saveChapterRecord(rec)
-	case *LessonRecord:
-		return m.saveLessonRecord(rec)
+	case ChapterRecord:
+		return m.saveChapterRecord(&rec)
+	case LessonRecord:
+		return m.saveLessonRecord(&rec)
 	default:
 		return errors.New("passed in unreconizable tutorial record")
 	}

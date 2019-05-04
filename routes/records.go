@@ -10,15 +10,26 @@ import (
 )
 
 func saveTutorialRecord(w http.ResponseWriter, r *http.Request) {
-	var record interface{}
-	if err := json.NewDecoder(r.Body).Decode(&record); err != nil {
-		http.Error(w, errBadJSON.Error(), http.StatusBadRequest)
-		log.Println(err)
+	typ, ok := mux.Vars(r)["type"]
+	if !ok {
+		http.Error(w, errMissingPathVar{"type"}.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if err := records.Save(tutorialRecordManager, record); err != nil {
-		http.Error(w, "Server error", http.StatusBadRequest)
+	// We either save a chapter or a lesson record given the type field
+	var err error
+	if typ == "chapter" {
+		chapterRecord := records.ChapterRecord{}
+		json.NewDecoder(r.Body).Decode(&chapterRecord)
+		err = records.Save(tutorialRecordManager, chapterRecord)
+	} else {
+		lessonRecord := records.LessonRecord{}
+		json.NewDecoder(r.Body).Decode(&lessonRecord)
+		err = records.Save(tutorialRecordManager, lessonRecord)
+	}
+
+	if err != nil {
+		http.Error(w, "Server error", http.StatusInternalServerError)
 		log.Println(err)
 		return
 	}
