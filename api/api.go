@@ -15,7 +15,8 @@ var (
 	chapterManager        *content.DefaultChapterManager
 	userManager           *auth.DefaultUserManager
 	tutorialRecordManager *records.TutorialRecordManager
-
+	gameManager           *content.DefaultGameManager
+	
 	a *API
 )
 
@@ -43,6 +44,7 @@ func initAPI() *API {
 	chapterManager = content.NewDefaultChapterManager(db)
 	userManager = auth.NewDefaultUserManager(auth.NewUserStore(db))
 	tutorialRecordManager = records.NewTutorialRecordManager(db)
+	gameManager = content.NewDefaultGameContentManager(db)
 
 	baseRouter := mux.NewRouter()
 	a.BaseRouter = baseRouter
@@ -62,6 +64,9 @@ func initAPI() *API {
 
 	recordRouter := a.BaseRouter.PathPrefix("/records").Subrouter()
 	recordRouter.HandleFunc("/tutorial", addLessonRecordHandler).Methods("POST")
+
+	gameRouter := a.BaseRouter.PathPrefix("/game").Subrouter()
+	gameRouter.HandleFunc("/boatrace", BoatgameHandler).Methods("POST")
 
 	return &a
 }
