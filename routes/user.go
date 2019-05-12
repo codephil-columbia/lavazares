@@ -1,6 +1,7 @@
-package api
+package routes
 
 import (
+	"encoding/json"
 	"errors"
 	"lavazares/utils"
 	"net/http"
@@ -64,9 +65,16 @@ func authenticateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = userManager.Authenticate(username, password)
+	user, err := userManager.Authenticate(username, password)
 	if err != nil {
-		http.Error(w, "User not authenticated", http.StatusBadRequest)
+		// Make sure not send stack errors
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = json.NewEncoder(w).Encode(user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }

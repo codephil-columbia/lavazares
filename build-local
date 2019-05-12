@@ -1,0 +1,32 @@
+#!/usr/bin/env python
+
+import logging
+import sys
+
+import docker 
+
+LOCAL_PATH = "./docker/local"
+CONTAINER_NAME = "LavazaresLocalDB"
+EXPORTED_PORTS = {"5432/tcp": 5432}
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("Build-Local")
+
+client = docker.from_env()
+
+# Build container 
+logger.info(f"Building image {LOCAL_PATH}")
+(image, _) = client.images.build(path=LOCAL_PATH)
+
+
+# Run container locally
+try:
+    container = client.containers.run(
+        image.id, 
+        name=CONTAINER_NAME,
+        ports=EXPORTED_PORTS,
+        detach=True
+    )
+    logger.info("Running container")
+except docker.errors.ContainerError:
+    logger.info("Error running container")

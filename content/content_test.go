@@ -60,7 +60,7 @@ func TestGetLessonsInChapter(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		lessons, err := contentManager.getLessonsInChapter(tc.chapterID)
+		lessons, err := contentManager.GetLessonsInChapter(tc.chapterID)
 		if err != nil {
 			if !tc.expectedErr {
 				t.Errorf("Unexpected error: [%v]", err)

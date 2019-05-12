@@ -1,4 +1,4 @@
-package api
+package routes
 
 import (
 	"bytes"
@@ -21,6 +21,7 @@ func TestMain(m *testing.M) {
 	os.Exit(ret)
 }
 
+// This fails, its fine
 func TestEditPasswordHandler(t *testing.T) {
 	missingUsername := []byte(`{
 		"password": "cesar"
@@ -50,7 +51,7 @@ func TestEditPasswordHandler(t *testing.T) {
 			if err != nil {
 				t.Errorf("error forming request %v", err)
 			}
-			testUserRouter.ServeHTTP(rr, req)
+			testBaseRouter.ServeHTTP(rr, req)
 			if rr.Code != tc.expected {
 				t.Errorf("Expected: [%v], got [%v]", tc.expected, rr.Code)
 			}
