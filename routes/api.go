@@ -20,6 +20,7 @@ var (
 	chapterManager        *content.ChapterManager
 	userManager           *auth.UserManager
 	tutorialRecordManager *records.TutorialRecordManager
+	gameManager           *content.DefaultGameManager
 
 	app *API
 )
@@ -96,7 +97,7 @@ func initAPI(connStr string) *API {
 	chapterManager = content.NewChapterManager(db)
 	userManager = auth.NewUserManager(auth.NewUserStore(db))
 	tutorialRecordManager = records.NewTutorialRecordManager(db)
-
+	gameManager = content.NewDefaultGameContentManager(db)
 	app.BaseRouter = mux.NewRouter()
 
 	lessonRouter := app.BaseRouter.PathPrefix("/lesson").Subrouter()
@@ -123,6 +124,10 @@ func initAPI(connStr string) *API {
 	statsRouter := app.BaseRouter.PathPrefix("/stats").Subrouter()
 	statsRouter.HandleFunc("/tutorial/lesson/{uid}", getTutorialHollisticLessonStatsHandler)
 	statsRouter.HandleFunc("/tutorial/lesson/{lessonid}/{uid}", getTutorialLessonStatsHandler)
+
+	gameRouter := app.BaseRouter.PathPrefix("/game").Subrouter()
+	gameRouter.HandleFunc("/boatrace", BoatgameHandler).Methods("GET")
+	gameRouter.HandleFunc("/coco", CocogameHandler).Methods("GET")
 
 	return &app
 }

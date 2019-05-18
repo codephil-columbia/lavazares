@@ -3,17 +3,15 @@ package content
 import (
 	"log"
 	"os"
-	"sort"
-	"strings"
-	"time"
-
 	"github.com/jmoiron/sqlx"
-
-	"github.com/lib/pq"
 )
 
+const gameManagerLoggerName = "GameManager"
+
 type Gametext struct{ 
-	Gamecontent      string    `db:"gamecontent" json:"gameContent"`
+	Id			  string 	`db:"id" 		json:"gametextId"`
+	Txt			  string	`db:"txt" 		json:"gameContnent"`
+	Gametype      string 	`db:"gametype"  json:"gameName"`
 }
 
 type DefaultGameManager struct {
@@ -21,10 +19,10 @@ type DefaultGameManager struct {
 	logger *log.Logger   
 }
 
-func NewDefaultGameContentManager(db *sqlx.DB) *DefaultGameContentManager{
-	return &DefaultGameContentManager{
+func NewDefaultGameContentManager(db *sqlx.DB) *DefaultGameManager{
+	return &DefaultGameManager{
 		store:newGameStore(db),
-		logger: log.New(os.Stdout, DefaultGameContentManager, log.Lshortfile),
+		logger: log.New(os.Stdout, gameManagerLoggerName, log.Lshortfile),
 	}
 }
 
@@ -32,19 +30,47 @@ type gameContentStore struct{
 	db *sqlx.DB
 }
 
-func newGameStore(db *sqlx.DB) *gameStore{
-	return &gameStore{db:db}
+func newGameStore(db *sqlx.DB) *gameContentStore{
+	return &gameContentStore{db:db}
 }
 
-func (manager *DefaultGameManager) ReturnBoatText() {
-	return manager.store.Query()
+func (manager *DefaultGameManager) ReturnBoatText() ([]*Gametext, error) {
+	return manager.store.QueryBoat()
 }
 
-func (store *gameContentStore) Query() (*Gametext, error) {
-	var g Gametext
-	err := store.db.QueryRowx().StructScan(&g)
-	if err != nil {
-		return nil,err
+func (manager *DefaultGameManager) ReturnCocoText() ([]*Gametext, error) {
+	return manager.store.QueryCoco()
+}
+
+func (store *gameContentStore) QueryBoat() ([]*Gametext, error) {
+	var g []*Gametext
+	rows, err := store.db.Queryx("SELECT * FROM gametext where gametype='boatrace'")
+	defer rows.Close()
+
+	for rows.Next() {
+		var c Gametext
+		err = rows.StructScan(&c)
+		if err != nil {
+			return nil,err
+		}
+		g = append(g,&c)
 	}
-	return &g, nil
+	return g, nil
+}
+
+func (store *gameContentStore) QueryCoco() ([]*Gametext, error) {
+	var g []*Gametext
+	rows, err := store.db.Queryx("SELECT * FROM gametext WHERE gametype='coco'")
+	defer rows.Close()
+
+	for rows.Next() {
+		var c Gametext
+		err = rows.StructScan(&c)
+		if err != nil {
+			return nil,err
+		}
+		g = append(g,&c)
+	}
+
+	return g, nil
 }

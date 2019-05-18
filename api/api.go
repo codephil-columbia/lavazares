@@ -16,7 +16,7 @@ var (
 	userManager           *auth.DefaultUserManager
 	tutorialRecordManager *records.TutorialRecordManager
 	gameManager           *content.DefaultGameManager
-	
+
 	a *API
 )
 
@@ -66,7 +66,7 @@ func initAPI() *API {
 	recordRouter.HandleFunc("/tutorial", addLessonRecordHandler).Methods("POST")
 
 	gameRouter := a.BaseRouter.PathPrefix("/game").Subrouter()
-	gameRouter.HandleFunc("/boatrace", BoatgameHandler).Methods("POST")
+	gameRouter.HandleFunc("/boatrace", BoatgameHandler).Methods("GET")
 
 	return &a
 }
