@@ -12,6 +12,48 @@ CREATE TABLE Users (
     PRIMARY KEY(UID)
 );
 
+CREATE TABLE GameText (
+    ID TEXT NOT NULL, 
+    Txt TEXT NOT NULL,
+    PRIMARY KEY(ID)
+);
+
+-- INSERT INTO Users(
+--     Username,
+--     Password,
+--     Email,
+--     UID,
+--     Occupation,
+--     FirstName,
+--     LastName
+-- ) VALUES (
+--     'tester',
+--     'password',
+--     'tester@gmail.com',
+--     '1',
+--     'Student',
+--     'Tester',
+--     'McTestem'
+-- );
+
+-- INSERT INTO Users(
+--   Username,
+--   Password,
+--   Email,
+--   UID,
+--   Occupation,
+--   FirstName,
+--   LastName
+-- ) VALUES (
+--            'tester',
+--            'password',
+--            'tester@gmail.com',
+--            '2',
+--            'Student',
+--            'Tester',
+--            'McTestem'
+-- );
+
 CREATE TABLE Students (
     Gender TEXT NOT NULL, 
     DOB TEXT NOT NULL,
@@ -49,9 +91,15 @@ CREATE TABLE Chapters (
     ChapterName TEXT,
     ChapterDescription TEXT,
     ChapterImage Text,
+    NextChapterID TEXT,
     PRIMARY KEY(ChapterID)
 );
 
+-- INSERT INTO Chapters (
+--     ChapterID
+-- ) VALUES (
+--     '1'
+-- );
 
 CREATE TABLE Lessons (
     LessonName TEXT,
@@ -64,9 +112,20 @@ CREATE TABLE Lessons (
     DeletedAt TIMESTAMP,
     UpdatedAt TIMESTAMP DEFAULT current_timestamp,
     MinimumScoreToPass INTEGER[],
+
+    NextLessonID TEXT,
+
     FOREIGN KEY(ChapterID) REFERENCES Chapters,
     PRIMARY KEY(LessonID)
 );
+
+-- INSERT INTO Lessons (
+--     LessonID,
+--     ChapterID
+-- ) VALUES (
+--     '2',
+--     '1'
+-- );
 
 CREATE TABLE Schools (
     SchoolName TEXT NOT NULL,
@@ -95,6 +154,8 @@ CREATE TABLE lessonscompleted (
     FOREIGN KEY(UID) REFERENCES Users,
     PRIMARY KEY(LessonID, UID)
 );
+
+-- INSERT INTO lessonscompleted(LessonID, UID, ChapterID, Accuracy, WPM) VALUES ('2', '1', '1', '100', '100');
 
 CREATE TABLE ChaptersCompleted (
     ChapterID TEXT NOT NULL,

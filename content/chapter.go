@@ -10,10 +10,11 @@ import (
 
 // Chapter metadata. Maps directly to SQL definition in DB.
 type Chapter struct {
-	ChapterID          string `db:"chapterid" json:"chapterID"`
-	ChapterName        string `db:"chaptername" json:"chapterName"`
-	ChapterDescription string `db:"chapterdescription" json:"chapterDescription"`
-	ChapterImage       string `db:"chapterimage" json:"chapterImage"`
+	ChapterID          string  `db:"chapterid" json:"chapterID"`
+	ChapterName        string  `db:"chaptername" json:"chapterName"`
+	ChapterDescription string  `db:"chapterdescription" json:"chapterDescription"`
+	ChapterImage       string  `db:"chapterimage" json:"chapterImage"`
+	NextChapterID      *string `db:"nextchapterid"`
 }
 
 type chapters []*Chapter
@@ -62,8 +63,13 @@ func (m *ChapterManager) GetChapters() ([]*Chapter, error) {
 	return m.store.QueryAll()
 }
 
+func (m *ChapterManager) GetChapterByName(name string) (*Chapter, error) {
+	return m.store.QueryByName(name)
+}
+
 type chapterManager interface {
 	GetChapter(id string) (*Chapter, error)
+	GetChapterByName(name string) (*Chapter, error)
 	GetChapters() ([]*Chapter, error)
 }
 
@@ -75,9 +81,19 @@ func newChapterStore(db *sqlx.DB) *chapterStore {
 	return &chapterStore{db: db}
 }
 
+func (s *chapterStore) QueryByName(name string) (*Chapter, error) {
+	var c Chapter
+	err := s.db.QueryRowx("SELECT * FROM Chapters WHERE chaptername=$1", name).StructScan(&c)
+	if err != nil {
+		return nil, err
+	}
+
+	return &c, nil
+}
+
 func (s *chapterStore) Query(id string) (*Chapter, error) {
 	var c Chapter
-	err := s.db.QueryRowx("SELECT * FROM Chapters WHERE id = $1", id).StructScan(&c)
+	err := s.db.QueryRowx("SELECT * FROM Chapters WHERE chapterid = $1", id).StructScan(&c)
 	if err != nil {
 		return nil, err
 	}

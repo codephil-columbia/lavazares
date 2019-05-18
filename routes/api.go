@@ -16,10 +16,17 @@ import (
 )
 
 var (
-	lessonManager         *content.LessonManager
-	chapterManager        *content.ChapterManager
-	userManager           *auth.UserManager
+	lessonManager  *content.LessonManager
+	chapterManager *content.ChapterManager
+
+	userManager *auth.UserManager
+
 	tutorialRecordManager *records.TutorialRecordManager
+
+	gameTextManager *content.GameTextManager
+
+	lessonRecordManager  *records.LessonsRecordManager
+	chapterRecordManager *records.ChapterRecordManager
 
 	app *API
 )
@@ -95,19 +102,22 @@ func initAPI(connStr string) *API {
 	lessonManager = content.NewLessonManager(db)
 	chapterManager = content.NewChapterManager(db)
 	userManager = auth.NewUserManager(auth.NewUserStore(db))
-	tutorialRecordManager = records.NewTutorialRecordManager(db)
+	lessonRecordManager = records.NewLessonRecordManager(db)
+	chapterRecordManager = records.NewChapterRecordManager(db)
+
+	gameTextManager = content.NewGameTextManager(db)
 
 	app.BaseRouter = mux.NewRouter()
 
 	lessonRouter := app.BaseRouter.PathPrefix("/lesson").Subrouter()
 	lessonRouter.HandleFunc("/", LessonsHandler)
 	lessonRouter.HandleFunc("/{id}", LessonHandler)
-	lessonRouter.HandleFunc("/current/{uid}", getNextNonCompletedLesson)
+	lessonRouter.HandleFunc("/current/{uid}", getCurrentLesson)
 
 	chapterRouter := app.BaseRouter.PathPrefix("/chapter").Subrouter()
 	chapterRouter.HandleFunc("/{id}", ChapterHandler)
 	chapterRouter.HandleFunc("/", ChaptersHandler)
-	chapterRouter.HandleFunc("/current/{uid}", getNextNonCompletedChapter)
+	chapterRouter.HandleFunc("/current/{uid}", getCurrentChapter)
 
 	userRouter := app.BaseRouter.PathPrefix("/user").Subrouter()
 	userRouter.HandleFunc("/", newUserHandler).Methods("POST")
@@ -115,14 +125,18 @@ func initAPI(connStr string) *API {
 	userRouter.HandleFunc("/authenticate", authenticateHandler).Methods("POST")
 
 	recordRouter := app.BaseRouter.PathPrefix("/records").Subrouter()
-
 	tutorialRouter := recordRouter.PathPrefix("/tutorial").Subrouter()
 	tutorialRouter.HandleFunc("/lessons/{uid}", getLessonRecordsForUserHandler)
-	tutorialRouter.HandleFunc("/save/{type}", saveTutorialRecord).Methods("POST")
+	tutorialRouter.HandleFunc("/save/lesson", saveTutorialLessonRecordHandler).Methods("POST")
+	tutorialRouter.HandleFunc("/save/chapter", saveTutorialChapterRecordHandler).Methods("POST")
 
 	statsRouter := app.BaseRouter.PathPrefix("/stats").Subrouter()
 	statsRouter.HandleFunc("/tutorial/lesson/{uid}", getTutorialHollisticLessonStatsHandler)
 	statsRouter.HandleFunc("/tutorial/lesson/{lessonid}/{uid}", getTutorialLessonStatsHandler)
+	statsRouter.HandleFunc("/tutorial/chapter/{uid}", getChapterProgressPercentage)
+
+	gamesRouter := app.BaseRouter.PathPrefix("/games").Subrouter()
+	gamesRouter.HandleFunc("/coco/text", handleCocoText)
 
 	return &app
 }

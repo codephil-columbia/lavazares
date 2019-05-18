@@ -14,8 +14,13 @@ logger = logging.getLogger("Build-Local")
 
 client = docker.from_env()
 
+if client.containers.get(CONTAINER_NAME):
+    logger.info("Deleting old container {}".format(CONTAINER_NAME))
+    client.containers.get(CONTAINER_NAME).stop()
+    client.containers.get(CONTAINER_NAME).remove()
+
 # Build container 
-logger.info(f"Building image {LOCAL_PATH}")
+logger.info("Building image {}".format(LOCAL_PATH))
 (image, _) = client.images.build(path=LOCAL_PATH)
 
 
@@ -27,6 +32,6 @@ try:
         ports=EXPORTED_PORTS,
         detach=True
     )
-    logger.info("Running container")
+    logger.info("Running container {}".format(CONTAINER_NAME))
 except docker.errors.ContainerError:
     logger.info("Error running container")

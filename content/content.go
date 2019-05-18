@@ -19,8 +19,8 @@ var (
 // ie finding the next sequential lesson/chapter,
 // finding the next lesson for a User
 type ContentManager struct {
-	chapterManager chapterManager
-	lessonManager  lessonManager
+	chapterManager *ChapterManager
+	lessonManager  *LessonManager
 	logger         *log.Logger
 }
 
@@ -42,41 +42,41 @@ func NewContentManager(db *sqlx.DB) *ContentManager {
 // TODO: Maybe at some point we should embed pointers to the next lesson within each
 // Lesson struct? At this point we don't have that many Lessons so it might not matter
 // too much
-func (m *ContentManager) GetNextLesson(lessonID string) (*Lesson, error) {
-	lesson, err := m.lessonManager.GetLesson(lessonID)
-	if err != nil {
-		return nil, err
-	}
-
-	lessonsInChapter, err := m.GetLessonsInChapter(lesson.ChapterID)
-	if err != nil {
-		return nil, err
-	}
-
-	sort.Sort(lessons(lessonsInChapter))
-	for i, lesson := range lessonsInChapter {
-		if lesson.LessonID == lessonID {
-			if i < len(lessonsInChapter)-1 {
-				return lessonsInChapter[i+1], nil
-			}
-		}
-	}
-
-	nextChapter, err := m.getNextChapter(lesson.ChapterID)
-	if err != nil {
-		if err == errCompletedAllChapters {
-			return nil, errCompletedAllLessons
-		}
-		return nil, err
-	}
-
-	lessonsInNextChapter, err := m.GetLessonsInChapter(nextChapter.ChapterID)
-	if err != nil {
-		return nil, err
-	}
-
-	return lessonsInNextChapter[0], nil
-}
+//func (m *ContentManager) GetNextLesson(lessonID string) (*Lesson, error) {
+//	lesson, err := m.lessonManager.GetLesson(lessonID)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	lessonsInChapter, err := m.GetLessonsInChapter(lesson.ChapterID)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	sort.Sort(byLessonName(lessonsInChapter))
+//	for i, lesson := range lessonsInChapter {
+//		if lesson.LessonID == lessonID {
+//			if i < len(lessonsInChapter)-1 {
+//				return lessonsInChapter[i+1], nil
+//			}
+//		}
+//	}
+//
+//	nextChapter, err := m.getNextChapter(lesson.ChapterID)
+//	if err != nil {
+//		if err == errCompletedAllChapters {
+//			return nil, errCompletedAllLessons
+//		}
+//		return nil, err
+//	}
+//
+//	lessonsInNextChapter, err := m.GetLessonsInChapter(nextChapter.ChapterID)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	return lessonsInNextChapter[0], nil
+//}
 
 func (m *ContentManager) getNextChapter(chapterID string) (*Chapter, error) {
 	lst, err := m.chapterManager.GetChapters()

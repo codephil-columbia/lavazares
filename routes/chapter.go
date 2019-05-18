@@ -35,7 +35,6 @@ func ChaptersHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	err = utils.SendJSON(chapters, w)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

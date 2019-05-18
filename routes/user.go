@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"lavazares/utils"
+	"log"
 	"net/http"
 )
 
@@ -39,9 +40,16 @@ func newUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = userManager.NewUser(data)
+	user, err := userManager.NewUser(data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = json.NewEncoder(w).Encode(user)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Error encoding user", http.StatusInternalServerError)
 		return
 	}
 }
